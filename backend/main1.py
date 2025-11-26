@@ -401,8 +401,9 @@ async def oauth2callback(request: Request):
             key=SESSION_COOKIE_NAME,
             value=session_token,
             httponly=True,      # Prevents JavaScript access
-            secure=False,       # Set to True in production with HTTPS
-            samesite="lax",     # CSRF protection
+            secure=True,       # Set to True in production with HTTPS
+            samesite="none",     # CSRF protection
+            domain=".onrender.com",
             max_age=SESSION_MAX_AGE,
             path="/"
         )
