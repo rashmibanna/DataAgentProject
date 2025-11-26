@@ -37,6 +37,15 @@ from store import USER_STORE  # <--- Import this instead of defining it locally
 # ----------------------------
 load_dotenv()
 
+# Environment variables
+CLIENT_ID = os.getenv("CLIENT_NEW_ID")
+CLIENT_SECRET = os.getenv("CLIENT_NEW_SECRET")
+REDIRECT_URI = os.getenv("REDIRECT_URI", "http://127.0.0.1:8000/oauth2callback")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")  # ✅ Add this for Drive Picker
+FRONTEND_URL = os.getenv("FRONTEND_URL")
+FRONTEND2_URL = os.getenv("FRONTEND2_URL")
+
 # In-memory session store (Use Redis/Database in production)
 
 sessions = {}
@@ -47,10 +56,15 @@ app = FastAPI(title="AI Data Validation Tool")
 # ✅ Include mapping service routes
 app.include_router(mapping_router, prefix="/api/mapping")
 
+origins = [
+    FRONTEND_URL,
+    FRONTEND2_URL
+]
+
 # ✅ Enable CORS for React frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -87,13 +101,7 @@ def get_current_session(session_token: Optional[str] = Cookie(None, alias=SESSIO
     """Dependency to get current session from cookie"""
     return get_session(session_token)
 
-# Environment variables
-CLIENT_ID = os.getenv("CLIENT_NEW_ID")
-CLIENT_SECRET = os.getenv("CLIENT_NEW_SECRET")
-REDIRECT_URI = os.getenv("REDIRECT_URI", "http://127.0.0.1:8000/oauth2callback")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")  # ✅ Add this for Drive Picker
-FRONTEND_URL = os.getenv("FRONTEND_URL")
+
 
 # Configure Gemini
 if GEMINI_API_KEY:
