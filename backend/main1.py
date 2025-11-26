@@ -392,6 +392,7 @@ async def oauth2callback(request: Request):
         session_token = create_session(email, access_token)
         
         logger.info(f"✅ User authenticated: {email}")
+        logger.info(f"🍪 Setting cookie with token: {session_token[:10]}...")  # ✅ ADD THIS
         
         # Create redirect response
         response = RedirectResponse(f"{FRONTEND_URL}/?email={email}")
@@ -407,6 +408,8 @@ async def oauth2callback(request: Request):
             max_age=SESSION_MAX_AGE,
             path="/"
         )
+
+        logger.info(f"🍪 Cookie set successfully")  # ✅ ADD THIS
         
         return response
 
@@ -460,7 +463,10 @@ async def logout(
     # Clear cookie
     response.delete_cookie(
         key=SESSION_COOKIE_NAME,
-        path="/"
+        path="/",
+        domain=".onrender.com",
+        samesite="none",
+        secure=True
     )
     
     return {"message": "Logged out successfully"}
