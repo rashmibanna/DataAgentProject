@@ -50,7 +50,7 @@ const ProfilingRules = () => {
     formData.append('local_path', localPath);
 
     try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/get_validation_rules`, {
+      const res = await fetch(`${process.env.REACT_APP_BASE_BACKEND_URL}/api/get_validation_rules`, {
         method: 'POST',
         body: formData
       });
@@ -99,7 +99,7 @@ const ProfilingRules = () => {
     formData.append('edits_json', JSON.stringify(edits));
     formData.append('current_headers_json', JSON.stringify(currentHeaders));
     try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/regenerate_rules`, {
+      const res = await fetch(`${process.env.REACT_APP_BASE_BACKEND_URL}/api/regenerate_rules`, {
         method: 'POST',
         body: formData
       });
@@ -145,7 +145,7 @@ const ProfilingRules = () => {
     formData.append('rules_json', JSON.stringify(currentRules));
 
     try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/run_validation`, {
+      const res = await fetch(`${process.env.REACT_APP_BASE_BACKEND_URL}/api/run_validation`, {
         method: 'POST',
         body: formData
       });

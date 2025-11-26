@@ -24,7 +24,7 @@ const FileSelection = () => {
     
     useEffect(() => {
         // Verify session with backend using cookie
-        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/verify-session`, {
+        fetch(`${process.env.REACT_APP_BASE_BACKEND_URL}/api/verify-session`, {
           credentials: 'include'  // CRITICAL: Sends cookies
         })
         .then(res => {
@@ -134,7 +134,7 @@ const mappingResult = await startMapping(
 
     // Add this inside the FileSelection component, before handleContinue
 
-const BACKEND_URL = `${process.env.REACT_APP_BACKEND_URL}/api/mapping`;
+const BACKEND_URL = `${process.env.REACT_APP_BASE_BACKEND_URL}/api/mapping`;
 
 // Helper to upload a single file
 const uploadFile = async (file) => {
@@ -144,7 +144,7 @@ const uploadFile = async (file) => {
     formData.append('file', file);
     
     // Calls the /api/upload_local route
-    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/upload_local`, {
+    const response = await fetch(`${process.env.REACT_APP_BASE_BACKEND_URL}/api/upload_local`, {
         method: 'POST',
         body: formData,
     });

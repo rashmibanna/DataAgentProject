@@ -50,13 +50,14 @@ const HomePage = () => {
   const dashboardUrl = `http://localhost:3001/dashboard`;
 
   const handleSignIn = () => {
-    window.location.href = `${process.env.REACT_APP_BACKEND_URL}/login`;
+     console.log(`${process.env.REACT_APP_BASE_BACKEND_URL}/login`)
+    window.location.href = `${process.env.REACT_APP_BASE_BACKEND_URL}/login`;
   };
 
   const handleLogout = async () => {
     try {
       // Call backend logout to clear session cookie
-      await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/logout`, {
+      await fetch(`${process.env.REACT_APP_BASE_BACKEND_URL}/api/logout`, {
         method: 'POST',
         credentials: 'include'
       });
