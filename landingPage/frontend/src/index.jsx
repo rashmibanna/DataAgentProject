@@ -47,7 +47,7 @@ const HomePage = () => {
     }
   }, [urlEmail]);
 
-  const dashboardUrl = `http://localhost:3001/dashboard`;
+  const dashboardUrl = `${process.env.REACT_APP_FRONTEND2_URL}/dashboard`;
 
   const handleSignIn = () => {
      console.log(`${process.env.REACT_APP_BASE_BACKEND_URL}/login`)

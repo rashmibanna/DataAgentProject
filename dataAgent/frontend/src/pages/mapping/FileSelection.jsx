@@ -49,7 +49,7 @@ const FileSelection = () => {
         .catch(error => {
           console.error('❌ Auth error:', error);
           // Redirect to landing page if not authenticated
-          window.location.href = "http://localhost:3000";
+          window.location.href = `${process.env.REACT_APP_FRONTEND_URL}`;
         });
       }, []);
 
