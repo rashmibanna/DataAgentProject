@@ -16,7 +16,7 @@ const MappingOptions = () => {
 
   useEffect(() => {
       // Verify session with backend using cookie
-      fetch('http://localhost:8000/api/verify-session', {
+      fetch(`${process.env.REACT_APP_BACKEND_URL}/api/verify-session`, {
         credentials: 'include'  // CRITICAL: Sends cookies
       })
       .then(res => {

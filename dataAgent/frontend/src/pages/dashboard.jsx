@@ -10,7 +10,7 @@ const Dashboard = () => {
   
   useEffect(() => {
     // Verify session with backend using cookie
-    fetch('http://localhost:8000/api/verify-session', {
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/verify-session`, {
       credentials: 'include'  // CRITICAL: Sends cookies
     })
     .then(res => {
@@ -35,13 +35,13 @@ const Dashboard = () => {
     .catch(error => {
       console.error('❌ Auth error:', error);
       // Redirect to landing page if not authenticated
-      window.location.href = "http://localhost:3000";
+      window.location.href = `${process.env.REACT_APP_FRONTEND_URL}`;
     });
   }, []);
 
   const handleLogout = async () => {
     try {
-      await fetch('http://localhost:8000/api/logout', {
+      await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/logout`, {
         method: 'POST',
         credentials: 'include'
       });
@@ -52,7 +52,7 @@ const Dashboard = () => {
     
     localStorage.removeItem("user_email");
     localStorage.removeItem("google_access_token");
-    window.location.href = "http://localhost:3000";
+    window.location.href = "${process.env.REACT_APP_FRONTEND_URL}`";
   };
 
   if (isLoading) {

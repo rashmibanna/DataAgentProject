@@ -19,7 +19,7 @@ const ProfilingOptions = () => {
  
   useEffect(() => {
     // Verify session with backend using cookie
-    fetch('http://localhost:8000/api/verify-session', {
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/verify-session`, {
       credentials: 'include'  // CRITICAL: Sends cookies
     })
     .then(res => {
@@ -44,7 +44,7 @@ const ProfilingOptions = () => {
     .catch(error => {
       console.error('❌ Auth error:', error);
       // Redirect to landing page if not authenticated
-      window.location.href = "http://localhost:3000";
+      window.location.href = `${process.env.REACT_APP_FRONTEND_URL}`;
     });
   }, []);
 
@@ -88,7 +88,7 @@ const showDrive = () => {
     showLoader("Fetching file from Google Drive...");
     
     try {
-      const res = await fetch(`http://localhost:8000/api/drive/getfile?email=${encodeURIComponent(email)}&file_id=${fileId}`);
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/drive/getfile?email=${encodeURIComponent(email)}&file_id=${fileId}`);
       const data = await res.json();
       
       if (!res.ok) {
@@ -117,7 +117,7 @@ const showDrive = () => {
     form.append('file', file); 
      showLoader("Uploading file...");
     try {
-      const res = await fetch('http://localhost:8000/api/upload_local', { method: 'POST', body: form });
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/upload_local`, { method: 'POST', body: form });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       const safePath = data.local_path.replace(/\\/g, '/');

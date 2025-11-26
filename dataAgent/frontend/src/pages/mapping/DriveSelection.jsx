@@ -85,7 +85,7 @@ const DriveSelection = () => {
                 formData.append('host_system', 'Host System'); // You can make this dynamic
                 formData.append('target_system', 'Target System'); // You can make this dynamic
 
-                const response = await fetch('http://localhost:8000/api/mapping/smart_mapping_with_files', {
+                const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/mapping/smart_mapping_with_files`, {
                     method: 'POST',
                     body: formData
                 });
