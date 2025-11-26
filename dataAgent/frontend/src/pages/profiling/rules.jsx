@@ -8,7 +8,9 @@ const ProfilingRules = () => {
   const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
   
-  const email = searchParams.get('email');
+  const emailParam = searchParams.get('email');
+  const storedEmail = localStorage.getItem("user_email");
+  const email = emailParam || storedEmail;
 
   const filename = searchParams.get('filename');
   const localPath = searchParams.get('local_path');
@@ -219,6 +221,8 @@ const ProfilingRules = () => {
                 className="btn"
                 onClick={() => {
                   if (window.confirm('Are you sure you want to logout?')) {
+                    localStorage.removeItem("user_email");
+                    localStorage.removeItem("google_access_token");
                     navigate('/');
                   }
                 }}

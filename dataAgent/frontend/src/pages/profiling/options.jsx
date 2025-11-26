@@ -13,39 +13,75 @@ const ProfilingOptions = () => {
   const fileInputRef = useRef(null);
   const drivePickerRef = useRef();
   const [isPickerReady, setIsPickerReady] = useState(false);
- const [isLoading, setIsLoading] = useState(true);
+//  const [isLoading, setIsLoading] = useState(true);
   const showLoader = (msg = "Loading...") => setLoading(msg);
   const hideLoader = () => setLoading(false);
  
-  useEffect(() => {
-    // Verify session with backend using cookie
-    fetch(`${process.env.REACT_APP_BASE_BACKEND_URL}/api/verify-session`, {
-      credentials: 'include'  // CRITICAL: Sends cookies
-    })
-    .then(res => {
-      if (!res.ok) {
-        throw new Error('Not authenticated');
-      }
-      return res.json();
-    })
-    .then(data => {
-      console.log('✅ Authenticated:', data.email);
-      setEmail(data.email);
-      setToken(data.access_token);
+  // useEffect(() => {
+  //   // Verify session with backend using cookie
+  //   fetch(`${process.env.REACT_APP_BASE_BACKEND_URL}/api/verify-session`, {
+  //     credentials: 'include'  // CRITICAL: Sends cookies
+  //   })
+  //   .then(res => {
+  //     if (!res.ok) {
+  //       throw new Error('Not authenticated');
+  //     }
+  //     return res.json();
+  //   })
+  //   .then(data => {
+  //     console.log('✅ Authenticated:', data.email);
+  //     setEmail(data.email);
+  //     setToken(data.access_token);
       
-      // Store access token and email in localStorage for convenience
-      if (data.access_token) {
-        localStorage.setItem('google_access_token', data.access_token);
-      }
-      localStorage.setItem('user_email', data.email);
+  //     // Store access token and email in localStorage for convenience
+  //     if (data.access_token) {
+  //       localStorage.setItem('google_access_token', data.access_token);
+  //     }
+  //     localStorage.setItem('user_email', data.email);
       
-      setIsLoading(false);
-    })
-    .catch(error => {
-      console.error('❌ Auth error:', error);
-      // Redirect to landing page if not authenticated
-      window.location.href = `${process.env.REACT_APP_FRONTEND_URL}`;
-    });
+  //     setIsLoading(false);
+  //   })
+  //   .catch(error => {
+  //     console.error('❌ Auth error:', error);
+  //     // Redirect to landing page if not authenticated
+  //     window.location.href = `${process.env.REACT_APP_FRONTEND_URL}`;
+  //   });
+  // }, []);
+  
+   useEffect(() => {
+    // 1. Get params from URL (Passed from Dashboard)
+    const queryParams = new URLSearchParams(window.location.search);
+    const urlEmail = queryParams.get("email");
+    const urlToken = queryParams.get("token");
+
+    // 2. Get params from LocalStorage (Refresh / Back Button)
+    const storedEmail = localStorage.getItem("user_email");
+    const storedToken = localStorage.getItem("google_access_token");
+
+    if (urlEmail && urlEmail !== "undefined") {
+      console.log("📥 Receiving Session in Profiling Options...");
+      
+      // Save valid data to storage
+      localStorage.setItem("user_email", urlEmail);
+      if (urlToken) localStorage.setItem("google_access_token", urlToken);
+
+      // Update State
+      setEmail(urlEmail);
+      setToken(urlToken);
+
+      // 🧹 Clean the URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } 
+    else if (storedEmail && storedEmail !== "undefined") {
+      console.log("♻️ Restoring Session from Storage...");
+      setEmail(storedEmail);
+      setToken(storedToken);
+    } 
+    else {
+      console.warn("⛔ No session found. Redirecting...");
+      // Optional: Redirect to landing page if critical
+      // window.location.href = process.env.REACT_APP_BASE_FRONTEND_URL;
+    }
   }, []);
 
 const showDrive = () => {
@@ -84,6 +120,11 @@ const showDrive = () => {
 
   // ✅ NEW: Handle Google Picker file selection
   const handleGooglePickerFileSelected = async (fileId, fileName, mimeType) => {
+    if (!email) {
+        alert("Session lost. Please refresh or login again.");
+        return;
+    }
+
     console.log('📁 File selected from Google Picker:', { fileId, fileName, mimeType });
     showLoader("Fetching file from Google Drive...");
     
@@ -111,6 +152,7 @@ const showDrive = () => {
     const file = fileToUpload || selectedFile;
     
     if (!file) return alert("Please select a file first");
+    if (!email) return alert("Session lost. Please refresh or login again.");
 
     const form = new FormData();
     form.append('email', email);

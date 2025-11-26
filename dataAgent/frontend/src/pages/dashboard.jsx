@@ -161,7 +161,7 @@ const Dashboard = () => {
       </div>
       
       <div className="grid">
-        <div className="bubble primary" onClick={() => navigate(`/profiling/options?email=${email}`)}>
+        <div className="bubble primary" onClick={() => navigate(`/profiling/options?email=${encodeURIComponent(email)}`)}>
           <div className="bubble-icon">📊</div>
           <div className="bubble-title">Data Profiling</div>
           <div className="bubble-desc">Analyze and understand your data structure</div>
@@ -174,7 +174,7 @@ const Dashboard = () => {
           <div className="bubble-desc">Remove inconsistencies and errors</div>
         </div>
         
-        <div className="bubble primary" onClick={() => navigate(`/mapping/optionsMapping?email=${email}`)}>
+        <div className="bubble primary" onClick={() => navigate(`/mapping/optionsMapping?email=${encodeURIComponent(email)}`)}>
           <div className="bubble-icon">🗺️</div>
           <div className="bubble-title">Data Mapping</div>
           <div className="bubble-desc">Transform data between formats</div>

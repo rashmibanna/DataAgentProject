@@ -5,7 +5,9 @@ export default function Preview() {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
 
-  const email = searchParams.get("email");
+  const emailParam = searchParams.get("email");
+  const storedEmail = localStorage.getItem("user_email");
+  const email = emailParam || storedEmail;
   const filename = searchParams.get("filename");
   // const [email,setEmail] = useState(null);
   // const [token , setToken] = useState(null);
@@ -34,6 +36,9 @@ export default function Preview() {
       e.target.submit();
     }, 800);
   };
+
+ 
+
 
   return (
     <>
@@ -82,6 +87,8 @@ export default function Preview() {
         <button
           onClick={() => {
             if (window.confirm("Are you sure you want to logout?")) {
+              localStorage.removeItem("user_email");
+        localStorage.removeItem("google_access_token");
               window.location.href = "/";
             }
           }}

@@ -14,45 +14,91 @@ const MappingOptions = () => {
   const [loading,setLoading] = useState(false);
   console.log(email);
 
+  // useEffect(() => {
+  //     // Verify session with backend using cookie
+  //     fetch(`${process.env.REACT_APP_BASE_BACKEND_URL}/api/verify-session`, {
+  //       credentials: 'include'  // CRITICAL: Sends cookies
+  //     })
+  //     .then(res => {
+  //       if (!res.ok) {
+  //         throw new Error('Not authenticated');
+  //       }
+  //       return res.json();
+  //     })
+  //     .then(data => {
+  //       console.log('✅ Authenticated:', data.email);
+  //       setEmail(data.email);
+  //       setToken(data.access_token);
+        
+  //       // Store access token and email in localStorage for convenience
+  //       if (data.access_token) {
+  //         localStorage.setItem('google_access_token', data.access_token);
+  //       }
+  //       localStorage.setItem('user_email', data.email);
+        
+  //       setIsLoading(false);
+  //     })
+  //     .catch(error => {
+  //       console.error('❌ Auth error:', error);
+  //       // Redirect to landing page if not authenticated
+  //       window.location.href = `${process.env.REACT_APP_FRONTEND_URL}`;
+  //     });
+  //   }, []);
+  
   useEffect(() => {
-      // Verify session with backend using cookie
-      fetch(`${process.env.REACT_APP_BASE_BACKEND_URL}/api/verify-session`, {
-        credentials: 'include'  // CRITICAL: Sends cookies
-      })
-      .then(res => {
-        if (!res.ok) {
-          throw new Error('Not authenticated');
-        }
-        return res.json();
-      })
-      .then(data => {
-        console.log('✅ Authenticated:', data.email);
-        setEmail(data.email);
-        setToken(data.access_token);
-        
-        // Store access token and email in localStorage for convenience
-        if (data.access_token) {
-          localStorage.setItem('google_access_token', data.access_token);
-        }
-        localStorage.setItem('user_email', data.email);
-        
-        setIsLoading(false);
-      })
-      .catch(error => {
-        console.error('❌ Auth error:', error);
-        // Redirect to landing page if not authenticated
-        window.location.href = `${process.env.REACT_APP_FRONTEND_URL}`;
-      });
-    }, []);
+    // 1. Get params from URL (Passed from Dashboard)
+    const queryParams = new URLSearchParams(window.location.search);
+    const urlEmail = queryParams.get("email");
+    const urlToken = queryParams.get("token");
+
+    // 2. Get params from LocalStorage (Refresh / Back Button)
+    const storedEmail = localStorage.getItem("user_email");
+    const storedToken = localStorage.getItem("google_access_token");
+
+    if (urlEmail && urlEmail !== "undefined") {
+      console.log("📥 Receiving Session in Mapping Options...");
+      
+      // Save valid data to storage
+      localStorage.setItem("user_email", urlEmail);
+      if (urlToken) localStorage.setItem("google_access_token", urlToken);
+
+      // Update State
+      setEmail(urlEmail);
+      setToken(urlToken);
+
+      // 🧹 Clean the URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } 
+    else if (storedEmail && storedEmail !== "undefined") {
+      console.log("♻️ Restoring Session from Storage...");
+      setEmail(storedEmail);
+      setToken(storedToken);
+    } 
+    else {
+      console.warn("⛔ No session found. Redirecting...");
+      // Optional: Redirect to landing page
+      // window.location.href = process.env.REACT_APP_BASE_FRONTEND_URL;
+    }
+    
+    setLoading(false);
+  }, []);
 
   const showDrive = useCallback(() => {
+    if (!email) {
+        alert("Session loading or expired. Please wait...");
+        return;
+    }
     setActiveOption('drive'); 
-    navigate(`/DriveSelection?email=${email}`); 
+    navigate(`/DriveSelection?email=${encodeURIComponent(email)}`); 
 }, [email, navigate]);
   
   const showLocal = () => {
+    if (!email) {
+        alert("Session loading or expired. Please wait...");
+        return;
+    }
     setActiveOption('local');
-    navigate(`/FileSelection?email=${email}`); // Pass email for persistence
+    navigate(`/FileSelection?email=${encodeURIComponent(email)}`); // Pass email for persistence
   };
 
   return (
@@ -116,6 +162,8 @@ const MappingOptions = () => {
         <button
           onClick={() => {
             if (window.confirm('Are you sure you want to logout?')) {
+              localStorage.removeItem("user_email");
+      localStorage.removeItem("google_access_token");
               window.location.href = '/';
             }
           }}

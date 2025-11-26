@@ -11,11 +11,48 @@ const DriveSelection = () => {
     const [currentPickerTarget, setCurrentPickerTarget] = useState(null);
     const [cardVisible, setCardVisible] = useState(false);
     const [email, setEmail] = useState(null);
-        const [token, setToken] = useState(null);
-       const [isLoading, setIsLoading] = useState(true);
+    const [token, setToken] = useState(null);
     const showLoader = (msg = "Loading...") => setLoading(msg);
     const hideLoader = () => setLoading(false);
     const drivePickerRef = useRef(null);
+    
+    useEffect(() => {
+        // 1. Get params from URL (Passed from MappingOptions)
+        const queryParams = new URLSearchParams(window.location.search);
+        const urlEmail = queryParams.get("email");
+        const urlToken = queryParams.get("token");
+
+        // 2. Get params from LocalStorage (Refresh / Back Button)
+        const storedEmail = localStorage.getItem("user_email");
+        const storedToken = localStorage.getItem("google_access_token");
+
+        if (urlEmail && urlEmail !== "undefined") {
+            console.log("📥 Receiving Session in Drive Selection...");
+            
+            // Save valid data to storage
+            localStorage.setItem("user_email", urlEmail);
+            if (urlToken) localStorage.setItem("google_access_token", urlToken);
+
+            // Update State
+            setEmail(urlEmail);
+            setToken(urlToken);
+
+            // 🧹 Clean the URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        } 
+        else if (storedEmail && storedEmail !== "undefined") {
+            console.log("♻️ Restoring Session from Storage...");
+            setEmail(storedEmail);
+            setToken(storedToken);
+        } 
+        else {
+            console.warn("⛔ No session found. Redirecting...");
+            // Optional: Redirect to landing page
+            // window.location.href = process.env.REACT_APP_BASE_FRONTEND_URL || '/';
+        }
+        
+        setTimeout(() => setCardVisible(true), 100);
+    }, []);
 
     useEffect(() => {
         setTimeout(() => setCardVisible(true), 100);
@@ -73,6 +110,10 @@ const DriveSelection = () => {
     // ✅ NEW: Handle Continue button - make backend API call for mapping
     const handleContinue = async () => {
         if (sourceFile && targetFile) {
+            if (!email) {
+                alert("Session expired. Please refresh the page.");
+                return;
+            }
             showLoader("Creating mapping...");
 
             try {
@@ -105,7 +146,8 @@ const DriveSelection = () => {
                         sourceFile,
                         targetFile,
                         mappingResult: result,
-                        fileUrl: result.file_url
+                        fileUrl: result.file_url,
+                        email : email
                     }
                 });
 
@@ -141,6 +183,8 @@ const DriveSelection = () => {
                 <button
                     onClick={() => {
                         if (window.confirm("Are you sure you want to logout?")) {
+                            localStorage.removeItem("user_email");
+            localStorage.removeItem("google_access_token");
                             window.location.href = "/";
                         }
                     }}
