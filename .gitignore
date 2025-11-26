@@ -1,0 +1,32 @@
+# ===========================
+# SECURITY: BLOCK ALL SECRETS
+# ===========================
+.env
+**/.env
+**/*.env
+tokens/
+**/tokens/
+
+# ===========================
+# REACT / NODE (Frontend)
+# ===========================
+node_modules/
+**/node_modules/
+build/
+**/build/
+dist/
+**/dist/
+.DS_Store
+Thumbs.db
+
+# ===========================
+# PYTHON (Backend)
+# ===========================
+__pycache__/
+**/__pycache__/
+*.py[cod]
+venv/
+**/venv/
+env/
+**/env/
+.pytest_cache/

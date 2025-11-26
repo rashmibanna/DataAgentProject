@@ -1,0 +1,307 @@
+{/* Google Drive Section */}
+          {/* {activeOption === 'drive' && (
+            <div style={{
+              marginTop: '20px',
+              padding: '20px',
+              background: '#f8faff',
+              borderRadius: '14px',
+              textAlign: 'left'
+            }}>
+              <div style={{
+                fontSize: '1.1rem',
+                marginBottom: '15px',
+                color: '#1a2b50',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <i className="fab fa-google-drive" style={{ color: '#1453c6' }}></i>
+                <span>Search Google Drive</span>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                gap: '8px',
+                marginBottom: '15px',
+                flexWrap: 'wrap'
+              }}>
+                <input
+                  style={{
+                    flex: '1',
+                    minWidth: '200px',
+                    padding: '10px 14px',
+                    border: '1px solid #e0e7ff',
+                    borderRadius: '10px',
+                    fontSize: '0.9rem',
+                    background: '#fff',
+                    outline: 'none',
+                    transition: 'all 0.3s'
+                  }}
+                  placeholder="Search for files..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && searchDrive()}
+                />
+                <button 
+                  onClick={searchDrive}
+                  style={{
+                    background: 'linear-gradient(135deg, #1453c6, #2a6ce8)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '0 18px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '0.9rem'
+                  }}
+                >
+                  <i className="fas fa-search"></i> Search
+                </button>
+              </div>
+
+              <div style={{
+                maxHeight: '160px',
+                overflowY: 'auto',
+                borderRadius: '10px',
+                background: '#fff',
+                padding: '10px'
+              }}>
+                {driveResults.length === 0 ? (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '20px',
+                    color: '#5a6c8d'
+                  }}>
+                    <i className="fas fa-search" style={{
+                      fontSize: '28px',
+                      marginBottom: '8px',
+                      color: '#c2d5ff',
+                      display: 'block'
+                    }}></i>
+                    <p style={{ fontSize: '0.85rem', margin: '0 0 15px 0' }}>
+                      Enter search term to find files
+                    </p> */}
+                    
+                    {/* ✅ Google Picker Button - Replace the empty state */}
+        //             <div style={{ 
+        //               display: 'flex', 
+        //               alignItems: 'center', 
+        //               justifyContent: 'center',
+        //               gap: '10px',
+        //               marginTop: '10px'
+        //             }}>
+        //               <div style={{
+        //                 height: '1px',
+        //                 flex: 1,
+        //                 background: '#e0e7ff'
+        //               }}></div>
+        //               <span style={{ 
+        //                 fontSize: '0.75rem', 
+        //                 color: '#5a6c8d',
+        //                 fontWeight: '600'
+        //               }}>OR</span>
+        //               <div style={{
+        //                 height: '1px',
+        //                 flex: 1,
+        //                 background: '#e0e7ff'
+        //               }}></div>
+        //             </div>
+                    
+        //             <div style={{ marginTop: '15px' }}>
+        //               <GoogleDrivePicker onFileSelected={handleGooglePickerFileSelected} />
+        //             </div>
+        //           </div>
+        //         ) : (
+        //           driveResults.slice(0, 3).map(f => (
+        //             <div 
+        //               key={f.id}
+        //               onClick={() => selectDriveFile(f.id, f.name)}
+        //               style={{
+        //                 display: 'flex',
+        //                 alignItems: 'center',
+        //                 gap: '10px',
+        //                 padding: '8px',
+        //                 borderRadius: '8px',
+        //                 marginBottom: '5px',
+        //                 cursor: 'pointer',
+        //                 transition: 'all 0.2s'
+        //               }}
+        //               onMouseEnter={(e) => e.currentTarget.style.background = '#f0f5ff'}
+        //               onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+        //             >
+        //               <div style={{
+        //                 width: '28px',
+        //                 height: '28px',
+        //                 background: '#eaf0ff',
+        //                 borderRadius: '6px',
+        //                 display: 'flex',
+        //                 alignItems: 'center',
+        //                 justifyContent: 'center',
+        //                 color: '#1453c6',
+        //                 fontSize: '12px'
+        //               }}>
+        //                 <i className={getFileIconClass(f.name)}></i>
+        //               </div>
+        //               <div style={{ flex: '1', textAlign: 'left' }}>
+        //                 <div style={{
+        //                   fontWeight: '600',
+        //                   color: '#1a2b50',
+        //                   fontSize: '0.85rem'
+        //                 }}>{f.name}</div>
+        //               </div>
+        //               <i className="fas fa-chevron-right" style={{ color: '#5a6c8d', fontSize: '10px' }}></i>
+        //             </div>
+        //           ))
+        //         )}
+        //       </div>
+        //      </div>
+        //    )}
+
+        //js
+
+        const selectDriveFile = async (id, name) => {
+    showLoader("Fetching file from Google Drive...");
+    try {
+      const res = await fetch(`http://localhost:8000/api/drive/getfile?email=${encodeURIComponent(email)}&file_id=${id}`);
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      const safePath = data.local_path.replace(/\\/g, '/');
+      window.location.href = `/profiling/preview?email=${encodeURIComponent(email)}&filename=${encodeURIComponent(name)}&local_path=${encodeURIComponent(safePath)}`;
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      hideLoader();
+    }
+  };
+
+   {/* Local Upload Section */}
+          {activeOption === 'local' && (
+            <div style={{
+              marginTop: '20px',
+              padding: '20px',
+              background: '#f8faff',
+              borderRadius: '14px',
+              textAlign: 'left'
+            }}>
+              <div style={{
+                fontSize: '1.1rem',
+                marginBottom: '15px',
+                color: '#1a2b50',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <i className="fas fa-upload" style={{ color: '#1453c6' }}></i>
+                <span>Upload Local File</span>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '15px'
+              }}>
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={handleDrop}
+                  style={{
+                    width: '100%',
+                    border: '2px dashed #c2d5ff',
+                    borderRadius: '12px',
+                    padding: '25px 15px',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    background: '#fcfdff',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = '#2a6ce8';
+                    e.currentTarget.style.background = '#f8faff';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = '#c2d5ff';
+                    e.currentTarget.style.background = '#fcfdff';
+                  }}
+                >
+                  <i className="fas fa-cloud-upload-alt" style={{
+                    fontSize: '32px',
+                    color: '#2a6ce8',
+                    marginBottom: '8px',
+                    display: 'block'
+                  }}></i>
+                  <div style={{
+                    fontSize: '0.95rem',
+                    color: '#1a2b50',
+                    marginBottom: '4px'
+                  }}>Click to browse or drag & drop</div>
+                  <div style={{
+                    color: '#5a6c8d',
+                    fontSize: '0.8rem'
+                  }}>CSV, Excel and other formats</div>
+                </div>
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  style={{ display: 'none' }}
+                  onChange={handleLocalFileChange}
+                />
+
+                {selectedFile && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '10px 12px',
+                    background: '#f0f5ff',
+                    borderRadius: '8px',
+                    width: '100%'
+                  }}>
+                    <i className="fas fa-check-circle" style={{
+                      color: '#198754',
+                      fontSize: '16px'
+                    }}></i>
+                    <div style={{ flex: 1, textAlign: 'left' }}>
+                      <div style={{
+                        fontWeight: '600',
+                        color: '#1a2b50',
+                        fontSize: '0.85rem',
+                        marginBottom: '2px'
+                      }}>{selectedFile.name}</div>
+                      <div style={{
+                        fontSize: '0.7rem',
+                        color: '#5a6c8d'
+                      }}>
+                        {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <button 
+                  onClick={uploadLocal}
+                  disabled={!selectedFile}
+                  style={{
+                    background: selectedFile ? 'linear-gradient(135deg, #198754, #20c997)' : '#ccc',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '10px 20px',
+                    fontWeight: '600',
+                    cursor: selectedFile ? 'pointer' : 'not-allowed',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '0.9rem',
+                    transition: 'all 0.3s'
+                  }}
+                >
+                  <i className="fas fa-upload"></i> Upload File
+                </button>
+              </div>
+            </div>
+          )}

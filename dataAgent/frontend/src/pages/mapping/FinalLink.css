@@ -1,0 +1,32 @@
+#resultBox {
+  background: linear-gradient(135deg, #e9f8f2, #d1f2e6);
+  color: #155724;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 25px;
+  text-align: left;
+  line-height: 1.6;
+  font-size: 1rem;
+  border-left: 4px solid #198754;
+  box-shadow: 0 4px 12px rgba(25, 135, 84, 0.15);
+}
+
+#resultBox h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+#resultBox a {
+  color: #0b58ca;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s;
+  word-break: break-all;
+}
+
+#resultBox a:hover {
+  color: #2a6ce8;
+  text-decoration: underline;
+}

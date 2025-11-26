@@ -1,0 +1,402 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+
+
+const HomePage = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [isSignedIn, setIsSignedIn] = useState(false);
+  const [hoveredCard, setHoveredCard] = useState(null);
+  const [showLogout, setShowLogout] = useState(false); // New state for logout menu
+
+  // 1. Get email/token from URL (for initial OAuth callback)
+  const urlEmail = new URLSearchParams(location.search).get("email");
+  const urlToken = new URLSearchParams(location.search).get("token");
+
+  // 2. Get email from localStorage or URL
+  const [email, setEmail] = useState(localStorage.getItem("user_email") || urlEmail || null);
+
+  // --- Authentication Management useEffect ---
+  useEffect(() => {
+    // A. Handle OAuth Callback URL Parameters
+    if (urlEmail) {
+      // User just signed in via OAuth
+      localStorage.setItem("user_email", urlEmail);
+      sessionStorage.setItem("user_email",urlEmail);
+      setEmail(urlEmail); // Update local state
+      setIsSignedIn(true);
+      
+      // Clean up URL: remove email but keep token for next step if token is present
+      window.history.replaceState({}, '', urlToken ? `/?token=${urlToken}` : '/');
+    }
+
+    if (urlToken) {
+      localStorage.setItem("google_access_token", urlToken);
+      sessionStorage.setItem("google_access_token",urlToken);
+      // Final URL cleanup after both email and token are processed
+      window.history.replaceState({}, '', urlEmail ? `/?email=${urlEmail}` : '/');
+    }
+
+    // B. Check localStorage for persistent sign-in status
+    const storedEmail = localStorage.getItem("user_email");
+    if (storedEmail) {
+      setEmail(storedEmail);
+      setIsSignedIn(true);
+    } else {
+      setIsSignedIn(false);
+      setEmail(null);
+    }
+  }, [urlEmail, urlToken, navigate]);
+  const dashboardUrl = `http://localhost:3001/dashboard`;
+  // --- Handlers ---
+
+  const handleSignIn = () => {
+    // Redirect to your backend login endpoint
+    window.location.href = "http://localhost:8000/login";
+  };
+
+  const handleLogout = () => {
+    // Clear all stored credentials and reset state
+    localStorage.removeItem("user_email");
+    localStorage.removeItem("google_access_token");
+    sessionStorage.removeItem("user_email");
+    sessionStorage.removeItem("google_access_token");
+    setIsSignedIn(false);
+    setEmail(null);
+    setShowLogout(false);
+    navigate('/'); // Navigate to the clean home page
+    // Optional: You might want to also hit a backend logout endpoint if your session requires it
+  };
+
+  const handleCardClick = (cardIndex) => {
+    if (isSignedIn && email) {
+      switch(cardIndex) {
+        case 0: // Data Agent
+          window.location.href = `${dashboardUrl}?email=${email}&token=${localStorage.getItem("google_access_token")}`;
+          break;
+        case 1: // QA Agent
+          console.log('QA Agent - Coming soon');
+          break;
+        case 2: // Coding Agent
+          console.log('Coding Agent - Coming soon');
+          break;
+        case 3: // PM Agent
+          console.log('PM Agent - Coming soon');
+          break;
+        default:
+          break;
+      }
+    }
+  };
+
+  // Function to extract the first name from an email
+const getFirstName = (email) => {
+  if (!email) return "User";
+  
+  // 1. Get the part before the '@' symbol
+  const localPart = email.split('@')[0];
+  
+  // 2. Split the local part by common separators (., _, -)
+  const parts = localPart.split(/[._-]/);
+  
+  // 3. Take the first part and capitalize it
+  let firstName = parts[0];
+  // Handle cases where the local part is just a single word (e.g., "john")
+  if (firstName) {
+    // Capitalize only the first letter
+    return firstName.charAt(0).toUpperCase() + firstName.slice(1);
+  }
+  
+  return "User"; // Fallback
+};
+  // ... (cards array is unchanged)
+
+  const cards = [
+    { 
+      icon: '🤖', 
+      title: 'Data Agent', 
+      desc: 'Intelligent data profiling, validation, and quality analysis',
+      hoverDesc: 'Automate data profiling with AI-powered validation rules. Detect anomalies, ensure integrity, and generate comprehensive quality reports instantly.'
+    },
+    { 
+      icon: '🧪', 
+      title: 'QA Agent', 
+      desc: 'Automated testing and quality assurance workflows',
+      hoverDesc: 'Generate test cases automatically, identify bugs intelligently, and execute comprehensive testing workflows with minimal manual intervention.'
+    },
+    { 
+      icon: '💻', 
+      title: 'Coding Agent', 
+      desc: 'AI-powered code generation and optimization',
+      hoverDesc: 'Generate production-ready code, optimize performance, refactor legacy systems, and receive intelligent code reviews with best practice recommendations.'
+    },
+    { 
+      icon: '📋', 
+      title: 'PM Agent', 
+      desc: 'Project management and workflow automation',
+      hoverDesc: 'Automate sprint planning, track deliverables intelligently, generate status reports, and optimize resource allocation with AI-driven insights.'
+    }
+  ];
+
+  return (
+    <div style={{
+      height: '100vh',
+      overflow: 'hidden',
+      background: 'linear-gradient(135deg, #f3f6fb 0%, #e8edf7 100%)',
+      fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      {/* Navbar */}
+      <nav style={{
+        height: '85px',
+        background: 'white',
+        borderBottom: '1px solid #e0e0e0',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 50px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+        flexShrink: 0
+      }}>
+        {/* Logo - Curved Rectangle */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          {/* Company Logo Image */}
+          <img 
+            src="https://www.forsysinc.com/assets/img/logo.png" 
+            alt="Forsys Logo" 
+            style={{
+              width: '70px', 
+              height: '70px', 
+              objectFit: 'contain', 
+            }} 
+          />
+          
+          {/* Colored Text: For=Blue, sys=Yellow, Agents=Blueish-white */}
+          <div style={{ 
+            fontSize: '28px', 
+            fontWeight: '700',
+            letterSpacing: '-0.5px',
+            display: 'flex',
+            gap: '2px'
+          }}>
+            <span style={{ color: '#1761c2ff' }}>For</span>
+            <span style={{ color: '#c3c614ff' }}>sys</span>
+            <span style={{ color: '#0d77e2ff', marginLeft: '8px' }}>Agents</span>
+          </div>
+        </div>
+
+        {/* Sign In Button or User Info */}
+        {!isSignedIn ? (
+          <button
+            onClick={handleSignIn}
+            style={{
+              padding: '12px 28px',
+              background: '#1453c6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 2px 8px rgba(20, 83, 198, 0.3)'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = '#0d3d9a';
+              e.target.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = '#1453c6';
+              e.target.style.transform = 'translateY(0)';
+            }}
+          >
+            Sign In with Google
+          </button>
+        ) : (
+          <div 
+            style={{ position: 'relative' }} // Container for dropdown
+            onMouseEnter={() => setShowLogout(true)}
+            onMouseLeave={() => setShowLogout(false)}
+          >
+            <div style={{
+              padding: '10px 20px',
+              background: '#eaf0ff',
+              borderRadius: '8px',
+              color: '#1453c6',
+              fontSize: '15px',
+              fontWeight: '600',
+              cursor: 'pointer', // Make it look clickable
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <span style={{ fontSize: '18px' }}>👤</span>
+              <span>Hi, {getFirstName(email)}</span>
+            </div>
+            
+            {/* Logout Dropdown Menu */}
+            {showLogout && (
+              <div 
+                onClick={handleLogout}
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: '5px',
+                  padding: '10px 20px',
+                  background: 'white',
+                  border: '1px solid #e0e0e0',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#e74c3c',
+                  cursor: 'pointer',
+                  width: 'max-content',
+                  zIndex: 10
+                }}
+              >
+                Logout
+              </div>
+            )}
+          </div>
+        )}
+      </nav>
+
+      {/* Cards Section - NO SCROLLING */}
+      <div style={{ 
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: '30px 50px',
+        overflow: 'hidden'
+      }}>
+        <h2 style={{
+          textAlign: 'center',
+          fontSize: '2rem',
+          color: '#0941b9ff',
+          marginBottom: '40px',
+          fontWeight: '700',
+          letterSpacing: '-0.5px'
+        }}>
+          Forsys Agentic Workforce
+        </h2>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '24px',
+          width: '100%',
+          maxWidth: '1300px'
+        }}>
+          {cards.map((card, idx) => {
+            const isClickable = isSignedIn;
+            const isHovered = hoveredCard === idx;
+            
+            return (
+              <div
+                key={idx}
+                onClick={() => handleCardClick(idx)}
+                onMouseEnter={() => setHoveredCard(idx)}
+                onMouseLeave={() => setHoveredCard(null)}
+                style={{
+                  background: 'white',
+                  borderRadius: '16px',
+                  padding: '28px 20px',
+                  boxShadow: isHovered && isClickable 
+                    ? '0 8px 24px rgba(20, 83, 198, 0.25)' 
+                    : '0 4px 12px rgba(0,0,0,0.08)',
+                  cursor: isClickable ? 'pointer' : 'not-allowed',
+                  opacity: isClickable ? 1 : 0.5,
+                  transition: 'all 0.3s ease',
+                  position: 'relative',
+                  border: isHovered && isClickable ? '2px solid #1453c6' : '2px solid transparent',
+                  transform: isHovered && isClickable ? 'translateY(-8px)' : 'translateY(0)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: '260px'
+                }}
+              >
+                {/* Status Badge */}
+                {!isSignedIn ? (
+                  <div style={{
+                    position: 'absolute',
+                    top: '12px',
+                    right: '12px',
+                    background: 'rgba(255,255,255,0.95)',
+                    padding: '4px 12px',
+                    borderRadius: '20px',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    color: '#5a6c8d',
+                    border: '1px solid #e0e0e0'
+                  }}>
+                    🔒 Sign in required
+                  </div>
+                ) : (
+                  <div style={{
+                    position: 'absolute',
+                    top: '12px',
+                    right: '12px',
+                    background: 'rgba(76, 175, 80, 0.1)',
+                    padding: '4px 12px',
+                    borderRadius: '20px',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    color: '#2e7d32',
+                    border: '1px solid rgba(76, 175, 80, 0.3)'
+                  }}>
+                    ✓ Available
+                  </div>
+                )}
+
+                {/* Icon */}
+                <div style={{
+                  width: '65px',
+                  height: '65px',
+                  background: isClickable && isHovered ? '#1453c6' : '#eaf0ff',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '34px',
+                  marginBottom: '18px',
+                  transition: 'all 0.3s ease'
+                }}>
+                  {card.icon}
+                </div>
+
+                {/* Title */}
+                <h3 style={{
+                  fontSize: '1.3rem',
+                  fontWeight: '700',
+                  color: isClickable && isHovered ? '#1453c6' : '#1a2b50',
+                  marginBottom: '10px',
+                  transition: 'color 0.3s ease'
+                }}>
+                  {card.title}
+                </h3>
+
+                {/* Description */}
+                <p style={{
+                  fontSize: '0.9rem',
+                  color: '#5a6c8d',
+                  lineHeight: '1.5',
+                  flex: 1,
+                  transition: 'all 0.3s ease'
+                }}>
+                  {isHovered && isClickable ? card.hoverDesc : card.desc}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default HomePage;
