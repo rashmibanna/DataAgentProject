@@ -39,7 +39,9 @@ load_dotenv()
 
 # In-memory session store (Use Redis/Database in production)
 
-
+sessions = {}
+SESSION_COOKIE_NAME = "session_token"
+SESSION_MAX_AGE = 3600 
 app = FastAPI(title="AI Data Validation Tool")
 
 # ✅ Include mapping service routes
@@ -53,6 +55,37 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def create_session(email: str, access_token: str) -> str:
+    """Create a new session and return session token"""
+    session_token = secrets.token_urlsafe(32)
+    sessions[session_token] = {
+        "email": email,
+        "access_token": access_token,
+        "created_at": time.time()
+    }
+    logger.info(f"✅ Session created for {email}")
+    return session_token
+
+def get_session(session_token: Optional[str]) -> dict:
+    """Get session data from token"""
+    if not session_token or session_token not in sessions:
+        raise HTTPException(status_code=401, detail="Invalid or expired session")
+    
+    session_data = sessions[session_token]
+    
+    # Check if session expired
+    if time.time() - session_data["created_at"] > SESSION_MAX_AGE:
+        del sessions[session_token]
+        raise HTTPException(status_code=401, detail="Session expired")
+    
+    return session_data
+
+
+def get_current_session(session_token: Optional[str] = Cookie(None, alias=SESSION_COOKIE_NAME)):
+    """Dependency to get current session from cookie"""
+    return get_session(session_token)
 
 # Environment variables
 CLIENT_ID = os.getenv("CLIENT_NEW_ID")
@@ -301,7 +334,6 @@ def login():
     )
     return RedirectResponse(authorization_url)
 
-
 @app.get("/oauth2callback")
 async def oauth2callback(request: Request):
     """Handle OAuth callback and save user credentials"""
@@ -348,12 +380,26 @@ async def oauth2callback(request: Request):
         # Save credentials to tokens/{email}.json
         save_credentials(email, tokens)
         
+        # ✅ NEW: Create session and set cookie
+        session_token = create_session(email, access_token)
+        
         logger.info(f"✅ User authenticated: {email}")
         
-        # Redirect to frontend with email and token
-        return RedirectResponse(
-            f"{FRONTEND_URL}/?email={email}&token={access_token}&status=success"
+        # Create redirect response
+        response = RedirectResponse(f"{FRONTEND_URL}/?email={email}")
+        
+        # ✅ Set HTTP-only cookie
+        response.set_cookie(
+            key=SESSION_COOKIE_NAME,
+            value=session_token,
+            httponly=True,      # Prevents JavaScript access
+            secure=False,       # Set to True in production with HTTPS
+            samesite="lax",     # CSRF protection
+            max_age=SESSION_MAX_AGE,
+            path="/"
         )
+        
+        return response
 
     except requests.exceptions.RequestException as e:
         logger.error(f"❌ Token exchange failed: {e}")
@@ -363,6 +409,52 @@ async def oauth2callback(request: Request):
         return RedirectResponse(f"{FRONTEND_URL}/?error=oauth_failed")
 
 
+@app.get("/api/verify-session")
+async def verify_session(session_data: dict = Depends(get_current_session)):
+    """
+    Verify if user session is valid
+    Used by Data Agent (port 3001) to check authentication
+    """
+    return {
+        "authenticated": True,
+        "email": session_data["email"],
+        "access_token": session_data["access_token"]
+    }
+
+
+@app.get("/api/get_token")
+def get_token(session_data: dict = Depends(get_current_session)):
+    """Get access token and Google API key for authenticated user (using session cookie)"""
+    try:
+        email = session_data["email"]
+        creds = load_credentials(email)
+        return {
+            "access_token": creds.token,
+            "email": email,
+            "google_api_key": GOOGLE_API_KEY
+        }
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Not authenticated: {e}")
+
+
+@app.post("/api/logout")
+async def logout(
+    response: Response,
+    session_token: Optional[str] = Cookie(None, alias=SESSION_COOKIE_NAME)
+):
+    """Logout user and clear session"""
+    if session_token and session_token in sessions:
+        email = sessions[session_token].get("email", "unknown")
+        del sessions[session_token]
+        logger.info(f"✅ User {email} logged out")
+    
+    # Clear cookie
+    response.delete_cookie(
+        key=SESSION_COOKIE_NAME,
+        path="/"
+    )
+    
+    return {"message": "Logged out successfully"}
 # ----------------------------
 # Google Drive API Routes
 # ----------------------------

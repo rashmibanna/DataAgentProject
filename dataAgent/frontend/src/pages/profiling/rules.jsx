@@ -9,6 +9,7 @@ const ProfilingRules = () => {
   const searchParams = new URLSearchParams(location.search);
   
   const email = searchParams.get('email');
+
   const filename = searchParams.get('filename');
   const localPath = searchParams.get('local_path');
 

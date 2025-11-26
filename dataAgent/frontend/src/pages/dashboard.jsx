@@ -5,80 +5,55 @@ import { useState, useEffect } from "react";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState(null);
-  const [token , setToken] = useState(null);
+  const [token, setToken] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  console.log("entered");
+  
   useEffect(() => {
-    // 1. Get URL parameters FIRST (they're the source of truth from HomePage)
-    const searchParams = new URLSearchParams(window.location.search);
-    const urlEmail = searchParams.get('email');
-    const urlToken = searchParams.get('token');
-
-    // 2. Check localStorage (port 3001 specific)
-    const storedEmail = localStorage.getItem('user_email');
-    const storedToken = localStorage.getItem('google_access_token');
-
-    console.log("URL Email:", urlEmail);
-    console.log("URL Token:", urlToken ? "Found" : "Not Found");
-    console.log("Stored Email:", storedEmail);
-    console.log("Stored Token:", storedToken ? "Found" : "Not Found");
-
-    // 3. Determine credentials (Priority: URL > localStorage)
-    const finalEmail = urlEmail || storedEmail;
-    const finalToken = urlToken || storedToken;
-
-    if (finalEmail && finalToken) {
-      // 4. Save to localStorage (port 3001)
-      setEmail(finalEmail);
-      setToken(finalToken);
-      localStorage.setItem('user_email', finalEmail);
-      localStorage.setItem('google_access_token', finalToken);
-      sessionStorage.setItem('user_email', finalEmail);
-      sessionStorage.setItem('google_access_token', finalToken);
-
-      // 5. DON'T clean URL yet - keep params for navigation
-      // Only clean if coming from external link
-      if (urlToken) {
-        // Coming from HomePage with fresh token - clean URL
-        window.history.replaceState({}, document.title, window.location.pathname);
+    // Verify session with backend using cookie
+    fetch('http://localhost:8000/api/verify-session', {
+      credentials: 'include'  // CRITICAL: Sends cookies
+    })
+    .then(res => {
+      if (!res.ok) {
+        throw new Error('Not authenticated');
       }
+      return res.json();
+    })
+    .then(data => {
+      console.log('✅ Authenticated:', data.email);
+      setEmail(data.email);
+      setToken(data.access_token);
+      
+      // Store access token and email in localStorage for convenience
+      if (data.access_token) {
+        localStorage.setItem('google_access_token', data.access_token);
+      }
+      localStorage.setItem('user_email', data.email);
       
       setIsLoading(false);
-    } else {
-      console.error("❌ Missing credentials. Redirecting to home...");
-      window.location.href = "http://localhost:3000"; 
-    }
+    })
+    .catch(error => {
+      console.error('❌ Auth error:', error);
+      // Redirect to landing page if not authenticated
+      window.location.href = "http://localhost:3000";
+    });
   }, []);
-  // useEffect(() => {
-  //   // Verify session with backend using cookie
-  //   fetch('http://localhost:8000/api/verify-session', {
-  //     credentials: 'include'  // CRITICAL: Sends cookies
-  //   })
-  //   .then(res => {
-  //     if (!res.ok) {
-  //       throw new Error('Not authenticated');
-  //     }
-  //     return res.json();
-  //   })
-  //   .then(data => {
-  //     console.log('✅ Authenticated:', data.email);
-  //     setEmail(data.email);
-      
-  //     // Store access token in localStorage for other API calls
-  //     if (data.access_token) {
-  //       console.log('token', data.access_token);
-  //       localStorage.setItem('google_access_token', data.access_token);
-  //     }
-  //     localStorage.setItem('user_email', data.email);
-      
-  //     setIsLoading(false);
-  //   })
-  //   .catch(error => {
-  //     console.error('❌ Auth error:', error);
-  //     // Redirect to landing page if not authenticated
-  //     window.location.href = "http://localhost:5000";
-  //   });
-  // }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch('http://localhost:8000/api/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      console.log('✅ Logged out');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+    
+    localStorage.removeItem("user_email");
+    localStorage.removeItem("google_access_token");
+    window.location.href = "http://localhost:3000";
+  };
 
   if (isLoading) {
     return (
@@ -88,20 +63,56 @@ const Dashboard = () => {
         alignItems: 'center',
         height: '100vh',
         fontSize: '1.5rem',
-        color: '#1453c6'
+        color: '#1453c6',
+        fontFamily: "'Inter', system-ui, sans-serif"
       }}>
-        Loading...
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '20px' }}>⏳</div>
+          <div>Loading Dashboard...</div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="body">
-      <div className="header">
-        <p className="subtitle">Hi there! What can I do for you today?</p> 
+      <div className="header" style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        padding: '20px 40px'
+      }}>
+        <p className="subtitle">Hi there! What can I do for you today?</p>
+        
+        <button 
+          onClick={handleLogout}
+          style={{
+            padding: '8px 20px',
+            background: '#e74c3c',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '14px',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 2px 6px rgba(231, 76, 60, 0.3)'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.background = '#c0392b';
+            e.target.style.transform = 'translateY(-2px)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.background = '#e74c3c';
+            e.target.style.transform = 'translateY(0)';
+          }}
+        >
+          Logout
+        </button>
       </div>
+      
       <div className="grid">
-        <div className="bubble primary" onClick={() => navigate(`/profiling/options?email=${email}&token=${token}`)}>
+        <div className="bubble primary" onClick={() => navigate(`/profiling/options?email=${email}`)}>
           <div className="bubble-icon">📊</div>
           <div className="bubble-title">Data Profiling</div>
           <div className="bubble-desc">Analyze and understand your data structure</div>

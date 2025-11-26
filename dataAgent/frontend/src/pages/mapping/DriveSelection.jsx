@@ -10,7 +10,9 @@ const DriveSelection = () => {
     const [loading, setLoading] = useState(false);
     const [currentPickerTarget, setCurrentPickerTarget] = useState(null);
     const [cardVisible, setCardVisible] = useState(false);
-    const email = new URLSearchParams(location.search).get("email");
+    const [email, setEmail] = useState(null);
+        const [token, setToken] = useState(null);
+       const [isLoading, setIsLoading] = useState(true);
     const showLoader = (msg = "Loading...") => setLoading(msg);
     const hideLoader = () => setLoading(false);
     const drivePickerRef = useRef(null);
@@ -77,6 +79,7 @@ const DriveSelection = () => {
                 // Call backend mapping API
                 const formData = new FormData();
                 formData.append('email', email);
+                console.log(email);
                 formData.append('host_file_id', sourceFile.id);
                 formData.append('target_file_id', targetFile.id);
                 formData.append('host_system', 'Host System'); // You can make this dynamic
@@ -90,6 +93,7 @@ const DriveSelection = () => {
                 const result = await response.json();
 
                 if (!response.ok) {
+                    console.log('response not ok');
                     throw new Error(result.detail || 'Mapping failed');
                 }
 

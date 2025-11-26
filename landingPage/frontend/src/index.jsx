@@ -1,78 +1,84 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-
 const HomePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [hoveredCard, setHoveredCard] = useState(null);
-  const [showLogout, setShowLogout] = useState(false); // New state for logout menu
+  const [showLogout, setShowLogout] = useState(false);
+  const [email, setEmail] = useState(null);
 
-  // 1. Get email/token from URL (for initial OAuth callback)
+  // Get email from URL (for OAuth callback)
   const urlEmail = new URLSearchParams(location.search).get("email");
-  const urlToken = new URLSearchParams(location.search).get("token");
-
-  // 2. Get email from localStorage or URL
-  const [email, setEmail] = useState(localStorage.getItem("user_email") || urlEmail || null);
 
   // --- Authentication Management useEffect ---
   useEffect(() => {
-    // A. Handle OAuth Callback URL Parameters
+    // Handle OAuth callback - email in URL means just logged in
     if (urlEmail) {
-      // User just signed in via OAuth
+      setEmail(urlEmail);
+      setIsSignedIn(true);
+      // Store email for convenience (not for auth)
       localStorage.setItem("user_email", urlEmail);
-      sessionStorage.setItem("user_email",urlEmail);
-      setEmail(urlEmail); // Update local state
-      setIsSignedIn(true);
-      
-      // Clean up URL: remove email but keep token for next step if token is present
-      window.history.replaceState({}, '', urlToken ? `/?token=${urlToken}` : '/');
-    }
-
-    if (urlToken) {
-      localStorage.setItem("google_access_token", urlToken);
-      sessionStorage.setItem("google_access_token",urlToken);
-      // Final URL cleanup after both email and token are processed
-      window.history.replaceState({}, '', urlEmail ? `/?email=${urlEmail}` : '/');
-    }
-
-    // B. Check localStorage for persistent sign-in status
-    const storedEmail = localStorage.getItem("user_email");
-    if (storedEmail) {
-      setEmail(storedEmail);
-      setIsSignedIn(true);
+      // Clean up URL
+      window.history.replaceState({}, '', '/');
     } else {
-      setIsSignedIn(false);
-      setEmail(null);
+      // Check if user has existing session by verifying with backend
+      fetch('http://localhost:8000/api/verify-session', {
+        credentials: 'include'
+      })
+      .then(res => {
+        if (res.ok) {
+          return res.json();
+        }
+        throw new Error('Not authenticated');
+      })
+      .then(data => {
+        setEmail(data.email);
+        setIsSignedIn(true);
+        localStorage.setItem("user_email", data.email);
+      })
+      .catch(() => {
+        // Not signed in
+        setIsSignedIn(false);
+        setEmail(null);
+        localStorage.removeItem("user_email");
+      });
     }
-  }, [urlEmail, urlToken, navigate]);
+  }, [urlEmail]);
+
   const dashboardUrl = `http://localhost:3001/dashboard`;
-  // --- Handlers ---
 
   const handleSignIn = () => {
-    // Redirect to your backend login endpoint
     window.location.href = "http://localhost:8000/login";
   };
 
-  const handleLogout = () => {
-    // Clear all stored credentials and reset state
+  const handleLogout = async () => {
+    try {
+      // Call backend logout to clear session cookie
+      await fetch('http://localhost:8000/api/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      console.log('✅ Logged out from backend');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+    
+    // Clear frontend storage
     localStorage.removeItem("user_email");
     localStorage.removeItem("google_access_token");
-    sessionStorage.removeItem("user_email");
-    sessionStorage.removeItem("google_access_token");
     setIsSignedIn(false);
     setEmail(null);
     setShowLogout(false);
-    navigate('/'); // Navigate to the clean home page
-    // Optional: You might want to also hit a backend logout endpoint if your session requires it
+    navigate('/');
   };
 
   const handleCardClick = (cardIndex) => {
     if (isSignedIn && email) {
       switch(cardIndex) {
         case 0: // Data Agent
-          window.location.href = `${dashboardUrl}?email=${email}&token=${localStorage.getItem("google_access_token")}`;
+          window.location.href = `${dashboardUrl}?email=${email}`;
           break;
         case 1: // QA Agent
           console.log('QA Agent - Coming soon');
@@ -89,27 +95,16 @@ const HomePage = () => {
     }
   };
 
-  // Function to extract the first name from an email
-const getFirstName = (email) => {
-  if (!email) return "User";
-  
-  // 1. Get the part before the '@' symbol
-  const localPart = email.split('@')[0];
-  
-  // 2. Split the local part by common separators (., _, -)
-  const parts = localPart.split(/[._-]/);
-  
-  // 3. Take the first part and capitalize it
-  let firstName = parts[0];
-  // Handle cases where the local part is just a single word (e.g., "john")
-  if (firstName) {
-    // Capitalize only the first letter
-    return firstName.charAt(0).toUpperCase() + firstName.slice(1);
-  }
-  
-  return "User"; // Fallback
-};
-  // ... (cards array is unchanged)
+  const getFirstName = (email) => {
+    if (!email) return "User";
+    const localPart = email.split('@')[0];
+    const parts = localPart.split(/[._-]/);
+    let firstName = parts[0];
+    if (firstName) {
+      return firstName.charAt(0).toUpperCase() + firstName.slice(1);
+    }
+    return "User";
+  };
 
   const cards = [
     { 
@@ -159,9 +154,7 @@ const getFirstName = (email) => {
         boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
         flexShrink: 0
       }}>
-        {/* Logo - Curved Rectangle */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          {/* Company Logo Image */}
           <img 
             src="https://www.forsysinc.com/assets/img/logo.png" 
             alt="Forsys Logo" 
@@ -172,7 +165,6 @@ const getFirstName = (email) => {
             }} 
           />
           
-          {/* Colored Text: For=Blue, sys=Yellow, Agents=Blueish-white */}
           <div style={{ 
             fontSize: '28px', 
             fontWeight: '700',
@@ -186,7 +178,6 @@ const getFirstName = (email) => {
           </div>
         </div>
 
-        {/* Sign In Button or User Info */}
         {!isSignedIn ? (
           <button
             onClick={handleSignIn}
@@ -215,7 +206,7 @@ const getFirstName = (email) => {
           </button>
         ) : (
           <div 
-            style={{ position: 'relative' }} // Container for dropdown
+            style={{ position: 'relative' }}
             onMouseEnter={() => setShowLogout(true)}
             onMouseLeave={() => setShowLogout(false)}
           >
@@ -226,7 +217,7 @@ const getFirstName = (email) => {
               color: '#1453c6',
               fontSize: '15px',
               fontWeight: '600',
-              cursor: 'pointer', // Make it look clickable
+              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '10px'
@@ -235,7 +226,6 @@ const getFirstName = (email) => {
               <span>Hi, {getFirstName(email)}</span>
             </div>
             
-            {/* Logout Dropdown Menu */}
             {showLogout && (
               <div 
                 onClick={handleLogout}
@@ -264,7 +254,7 @@ const getFirstName = (email) => {
         )}
       </nav>
 
-      {/* Cards Section - NO SCROLLING */}
+      {/* Cards Section */}
       <div style={{ 
         flex: 1,
         display: 'flex',
@@ -320,7 +310,6 @@ const getFirstName = (email) => {
                   height: '260px'
                 }}
               >
-                {/* Status Badge */}
                 {!isSignedIn ? (
                   <div style={{
                     position: 'absolute',
@@ -353,7 +342,6 @@ const getFirstName = (email) => {
                   </div>
                 )}
 
-                {/* Icon */}
                 <div style={{
                   width: '65px',
                   height: '65px',
@@ -369,7 +357,6 @@ const getFirstName = (email) => {
                   {card.icon}
                 </div>
 
-                {/* Title */}
                 <h3 style={{
                   fontSize: '1.3rem',
                   fontWeight: '700',
@@ -380,7 +367,6 @@ const getFirstName = (email) => {
                   {card.title}
                 </h3>
 
-                {/* Description */}
                 <p style={{
                   fontSize: '0.9rem',
                   color: '#5a6c8d',

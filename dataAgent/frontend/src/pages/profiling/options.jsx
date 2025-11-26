@@ -5,17 +5,48 @@ import GoogleDrivePicker from './GoogleDrivePicker';
 
 const ProfilingOptions = () => {
   const location = useLocation();
-  const email = new URLSearchParams(location.search).get("email");
+  const [email , setEmail] = useState(null);
+  const [token , setToken] = useState(null);
   const [activeOption, setActiveOption] = useState('drive'); 
   const [selectedFile, setSelectedFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
   const drivePickerRef = useRef();
   const [isPickerReady, setIsPickerReady] = useState(false);
-
+ const [isLoading, setIsLoading] = useState(true);
   const showLoader = (msg = "Loading...") => setLoading(msg);
   const hideLoader = () => setLoading(false);
-
+ 
+  useEffect(() => {
+    // Verify session with backend using cookie
+    fetch('http://localhost:8000/api/verify-session', {
+      credentials: 'include'  // CRITICAL: Sends cookies
+    })
+    .then(res => {
+      if (!res.ok) {
+        throw new Error('Not authenticated');
+      }
+      return res.json();
+    })
+    .then(data => {
+      console.log('✅ Authenticated:', data.email);
+      setEmail(data.email);
+      setToken(data.access_token);
+      
+      // Store access token and email in localStorage for convenience
+      if (data.access_token) {
+        localStorage.setItem('google_access_token', data.access_token);
+      }
+      localStorage.setItem('user_email', data.email);
+      
+      setIsLoading(false);
+    })
+    .catch(error => {
+      console.error('❌ Auth error:', error);
+      // Redirect to landing page if not authenticated
+      window.location.href = "http://localhost:3000";
+    });
+  }, []);
 
 const showDrive = () => {
   setActiveOption('drive'); 

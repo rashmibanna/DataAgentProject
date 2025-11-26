@@ -1,4 +1,4 @@
-import React, { useState , useCallback} from 'react';
+import React, { useState , useCallback , useEffect} from 'react';
 import { useLocation , useNavigate } from "react-router-dom";
 
 
@@ -6,11 +6,45 @@ import { useLocation , useNavigate } from "react-router-dom";
 const MappingOptions = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const email = new URLSearchParams(location.search).get("email");
+   const [email, setEmail] = useState(null);
+    const [token, setToken] = useState(null);
+   const [isLoading, setIsLoading] = useState(true);
   const [activeOption, setActiveOption] = useState('drive'); 
   // FIX 1: Correctly destructure useState for loading
   const [loading,setLoading] = useState(false);
   console.log(email);
+
+  useEffect(() => {
+      // Verify session with backend using cookie
+      fetch('http://localhost:8000/api/verify-session', {
+        credentials: 'include'  // CRITICAL: Sends cookies
+      })
+      .then(res => {
+        if (!res.ok) {
+          throw new Error('Not authenticated');
+        }
+        return res.json();
+      })
+      .then(data => {
+        console.log('✅ Authenticated:', data.email);
+        setEmail(data.email);
+        setToken(data.access_token);
+        
+        // Store access token and email in localStorage for convenience
+        if (data.access_token) {
+          localStorage.setItem('google_access_token', data.access_token);
+        }
+        localStorage.setItem('user_email', data.email);
+        
+        setIsLoading(false);
+      })
+      .catch(error => {
+        console.error('❌ Auth error:', error);
+        // Redirect to landing page if not authenticated
+        window.location.href = "http://localhost:3000";
+      });
+    }, []);
+
   const showDrive = useCallback(() => {
     setActiveOption('drive'); 
     navigate(`/DriveSelection?email=${email}`); 

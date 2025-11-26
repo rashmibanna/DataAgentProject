@@ -5,13 +5,17 @@ export default function Preview() {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
 
-  const filename = searchParams.get("filename");
   const email = searchParams.get("email");
+  const filename = searchParams.get("filename");
+  // const [email,setEmail] = useState(null);
+  // const [token , setToken] = useState(null);
   const localPath = searchParams.get("local_path");
-
+ //const [isLoading, setIsLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [encodedPath, setEncodedPath] = useState("");
   const [cardVisible, setCardVisible] = useState(false);
+
+  
 
   useEffect(() => {
     if (localPath) {
