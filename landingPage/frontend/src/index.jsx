@@ -24,7 +24,7 @@ const HomePage = () => {
       window.history.replaceState({}, '', '/');
     } else {
       // Check if user has existing session by verifying with backend
-      fetch('http://localhost:8000/api/verify-session', {
+      fetch(`${process.env.REACT_APP_BASE_BACKEND_URL}/api/verify-session`, {
         credentials: 'include'
       })
       .then(res => {
