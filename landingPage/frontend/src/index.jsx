@@ -10,42 +10,83 @@ const HomePage = () => {
   const [email, setEmail] = useState(null);
 
   // Get email from URL (for OAuth callback)
-  const urlEmail = new URLSearchParams(location.search).get("email");
+  // const urlEmail = new URLSearchParams(location.search).get("email");
 
-  // --- Authentication Management useEffect ---
+  // // --- Authentication Management useEffect ---
+  // useEffect(() => {
+  //   // Handle OAuth callback - email in URL means just logged in
+  //   if (urlEmail) {
+  //     setEmail(urlEmail);
+  //     setIsSignedIn(true);
+  //     // Store email for convenience (not for auth)
+  //     localStorage.setItem("user_email", urlEmail);
+  //     // Clean up URL
+  //     window.history.replaceState({}, '', '/');
+  //   } else {
+  //     // Check if user has existing session by verifying with backend
+  //     fetch(`${process.env.REACT_APP_BASE_BACKEND_URL}/api/verify-session`, {
+  //       credentials: 'include'
+  //     })
+  //     .then(res => {
+  //       if (res.ok) {
+  //         return res.json();
+  //       }
+  //       throw new Error('Not authenticated');
+  //     })
+  //     .then(data => {
+  //       setEmail(data.email);
+  //       setIsSignedIn(true);
+  //       localStorage.setItem("user_email", data.email);
+  //     })
+  //     .catch(() => {
+  //       // Not signed in
+  //       setIsSignedIn(false);
+  //       setEmail(null);
+  //       localStorage.removeItem("user_email");
+  //     });
+  //   }
+  // }, [urlEmail]);
+
   useEffect(() => {
-    // Handle OAuth callback - email in URL means just logged in
-    if (urlEmail) {
+    // 1. Get params from URL (New Login)
+    const queryParams = new URLSearchParams(window.location.search);
+    const urlToken = queryParams.get("token");
+    const urlEmail = queryParams.get("email");
+
+    // 2. Get params from Storage (Returning User / Refresh)
+    const storedToken = localStorage.getItem("google_access_token");
+    const storedEmail = localStorage.getItem("user_email");
+
+    // SCENARIO A: User just arrived from Login (Data is in URL)
+    if (urlToken && urlEmail) {
+      console.log("📥 New login detected from URL. Saving session...");
+      
+      // Save to Local Storage (Persistence)
+      localStorage.setItem("google_access_token", urlToken);
+      localStorage.setItem("user_email", urlEmail);
+      
+      // Update UI
       setEmail(urlEmail);
       setIsSignedIn(true);
-      // Store email for convenience (not for auth)
-      localStorage.setItem("user_email", urlEmail);
-      // Clean up URL
-      window.history.replaceState({}, '', '/');
-    } else {
-      // Check if user has existing session by verifying with backend
-      fetch(`${process.env.REACT_APP_BASE_BACKEND_URL}/api/verify-session`, {
-        credentials: 'include'
-      })
-      .then(res => {
-        if (res.ok) {
-          return res.json();
-        }
-        throw new Error('Not authenticated');
-      })
-      .then(data => {
-        setEmail(data.email);
-        setIsSignedIn(true);
-        localStorage.setItem("user_email", data.email);
-      })
-      .catch(() => {
-        // Not signed in
-        setIsSignedIn(false);
-        setEmail(null);
-        localStorage.removeItem("user_email");
-      });
+
+      // Clean the URL (Remove token/email so it looks clean)
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } 
+    
+    // SCENARIO B: User Refreshed or came back from Dashboard (Data is in Storage)
+    else if (storedEmail) { // (We trust the email if it exists in storage)
+      console.log("♻️ Session restored from LocalStorage");
+      setEmail(storedEmail);
+      setIsSignedIn(true);
     }
-  }, [urlEmail]);
+    
+    // SCENARIO C: No data found
+    else {
+      console.log("❌ No session found. User is Guest.");
+      setIsSignedIn(false);
+      setEmail(null);
+    }
+  }, []);
 
   const dashboardUrl = `${process.env.REACT_APP_FRONTEND2_URL}/dashboard`;
 
@@ -55,16 +96,16 @@ const HomePage = () => {
   };
 
   const handleLogout = async () => {
-    try {
-      // Call backend logout to clear session cookie
-      await fetch(`${process.env.REACT_APP_BASE_BACKEND_URL}/api/logout`, {
-        method: 'POST',
-        credentials: 'include'
-      });
-      console.log('✅ Logged out from backend');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+    // try {
+    //   // Call backend logout to clear session cookie
+    //   await fetch(`${process.env.REACT_APP_BASE_BACKEND_URL}/api/logout`, {
+    //     method: 'POST',
+    //     credentials: 'include'
+    //   });
+    //   console.log('✅ Logged out from backend');
+    // } catch (error) {
+    //   console.error('Logout error:', error);
+    // }
     
     // Clear frontend storage
     localStorage.removeItem("user_email");
@@ -73,13 +114,22 @@ const HomePage = () => {
     setEmail(null);
     setShowLogout(false);
     navigate('/');
+    console.log('✅ Logged out successfully');
   };
 
   const handleCardClick = (cardIndex) => {
-    if (isSignedIn && email) {
+    if (isSignedIn) {
+      // 🚨 CRITICAL FIX: Read directly from storage to ensure we never pass "undefined"
+      const currentEmail = localStorage.getItem("user_email"); 
+      const currentToken = localStorage.getItem("google_access_token");
       switch(cardIndex) {
         case 0: // Data Agent
-          window.location.href = `${dashboardUrl}?email=${email}`;
+          if (currentEmail) {
+            window.location.href = `${dashboardUrl}?email=${encodeURIComponent(currentEmail)}&token=${encodeURIComponent(currentToken || '')}`;
+          } else {
+             alert("Session error. Please login again.");
+             handleLogout();
+          }
           break;
         case 1: // QA Agent
           console.log('QA Agent - Coming soon');

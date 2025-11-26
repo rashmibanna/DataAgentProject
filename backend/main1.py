@@ -385,34 +385,35 @@ async def oauth2callback(request: Request):
         if not email:
             raise ValueError("No email in user profile")
 
-        # Save credentials to tokens/{email}.json
-        save_credentials(email, tokens)
+        # # Save credentials to tokens/{email}.json
+        # save_credentials(email, tokens)
         
-        # ✅ NEW: Create session and set cookie
-        session_token = create_session(email, access_token)
+        # # ✅ NEW: Create session and set cookie
+        # session_token = create_session(email, access_token)
         
-        logger.info(f"✅ User authenticated: {email}")
-        logger.info(f"🍪 Setting cookie with token: {session_token[:10]}...")  # ✅ ADD THIS
+        # logger.info(f"✅ User authenticated: {email}")
+        # logger.info(f"🍪 Setting cookie with token: {session_token[:10]}...")  # ✅ ADD THIS
         
-        # Create redirect response
-        response = RedirectResponse(f"{FRONTEND_URL}/?email={email}")
+        # # Create redirect response
+        # response = RedirectResponse(f"{FRONTEND_URL}/?email={email}")
         
-        # ✅ Set HTTP-only cookie
-        response.set_cookie(
-            key=SESSION_COOKIE_NAME,
-            value=session_token,
-            httponly=True,      # Prevents JavaScript access
-            secure=True,       # Set to True in production with HTTPS
-            samesite="none",     # CSRF protection
-            domain=".onrender.com",
-            max_age=SESSION_MAX_AGE,
-            path="/"
+        # # ✅ Set HTTP-only cookie
+        # response.set_cookie(
+        #     key=SESSION_COOKIE_NAME,
+        #     value=session_token,
+        #     httponly=True,      # Prevents JavaScript access
+        #     secure=True,       # Set to True in production with HTTPS
+        #     samesite="none",     # CSRF protection
+        #     domain="None",
+        #     max_age=SESSION_MAX_AGE,
+        #     path="/"
+        # )
+
+        # logger.info(f"🍪 Cookie set successfully")  # ✅ ADD THIS
+        
+        return RedirectResponse(
+            f"{FRONTEND_URL}/?email={email}&token={access_token}&status=success"
         )
-
-        logger.info(f"🍪 Cookie set successfully")  # ✅ ADD THIS
-        
-        return response
-
     except requests.exceptions.RequestException as e:
         logger.error(f"❌ Token exchange failed: {e}")
         return RedirectResponse(f"{FRONTEND_URL}/?error=token_exchange_failed")
@@ -464,7 +465,7 @@ async def logout(
     response.delete_cookie(
         key=SESSION_COOKIE_NAME,
         path="/",
-        domain=".onrender.com",
+        domain="none",
         samesite="none",
         secure=True
     )
