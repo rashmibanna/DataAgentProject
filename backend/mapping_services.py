@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 from store import USER_STORE
 
 import pandas as pd
-from fastapi import APIRouter, HTTPException, Form
+from fastapi import APIRouter, HTTPException, Form , Header
 import google.generativeai as genai
 from gdrive_services import (
     find_file_by_id, download_file_bytes,
