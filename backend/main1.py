@@ -155,12 +155,21 @@ def load_credentials(email):
 
 def get_drive_service(email: str):
     """Get Google Drive service for user"""
+    if email in USER_STORE and "credentials" in USER_STORE[email]:
+        creds = USER_STORE[email]["credentials"]
+        return build("drive", "v3", credentials=creds, cache_discovery=False)
+
+    # 2. Fallback: Try file system (Only works on Localhost)
     try:
         creds = load_credentials(email)
         return build("drive", "v3", credentials=creds, cache_discovery=False)
-    except Exception as e:
-        raise HTTPException(status_code=401, detail=f"User not authenticated: {e}")
-
+    except Exception:
+        # If neither works, the user must log in again
+        print(f"❌ No credentials found for {email} in memory or file.")
+        raise HTTPException(
+            status_code=401, 
+            detail="Session expired or credentials missing. Please logout and login again."
+        )
 
 def _normalize_value_for_rule(value):
     """Normalize value for rule evaluation"""
@@ -386,7 +395,7 @@ async def oauth2callback(request: Request):
             raise ValueError("No email in user profile")
 
         # # Save credentials to tokens/{email}.json
-        save_credentials(email, tokens)
+        # save_credentials(email, tokens)
         
         # # ✅ NEW: Create session and set cookie
         # session_token = create_session(email, access_token)
@@ -410,6 +419,21 @@ async def oauth2callback(request: Request):
         # )
 
         # logger.info(f"🍪 Cookie set successfully")  # ✅ ADD THIS
+
+        creds = Credentials(
+            token=tokens["access_token"],
+            refresh_token=tokens.get("refresh_token"),
+            token_uri="https://oauth2.googleapis.com/token",
+            client_id=CLIENT_ID,
+            client_secret=CLIENT_SECRET,
+            scopes=SCOPES
+        )
+
+        # 3. Store in the global memory dictionary
+        USER_STORE.setdefault(email, {})
+        USER_STORE[email]["credentials"] = creds
+        
+        logger.info(f"✅ Credentials stored in memory for: {email}")
         
         return RedirectResponse(
             f"{FRONTEND_URL}/?email={email}&token={access_token}&status=success"
@@ -440,7 +464,8 @@ def get_token(session_data: dict = Depends(get_current_session)):
     """Get access token and Google API key for authenticated user (using session cookie)"""
     try:
         email = session_data["email"]
-        creds = load_credentials(email)
+        if email in USER_STORE and "credentials" in USER_STORE[email]:
+            creds = USER_STORE[email]["credentials"]
         return {
             "access_token": creds.token,
             "email": email,
