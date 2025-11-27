@@ -248,11 +248,11 @@ def extract_json_content_from_file_local(file_path: str) -> Any:
         logger.error(f"⚠️ Error reading local file {file_path}: {e}")
         raise
 
-def extract_json_content_from_file(file_id: str, email: str) -> Any:
+def extract_json_content_from_file(file_id: str, email: str , access_token: Optional[str] = None) -> Any:
     """Download and parse JSON from Google Drive file"""
     try:
         logger.info(f"Downloading from Google Drive: {file_id}")
-        data = download_file_bytes(file_id ,email)
+        data = download_file_bytes(file_id ,email , access_token)
         text = data.decode("utf-8", errors="ignore")
         return safe_json_parse(text)
     except Exception as e:
