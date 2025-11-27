@@ -759,8 +759,7 @@ async def api_get_validation_rules(
     sample_size = min(len(df), 10)
     sample_rows = df.sample(n=sample_size).to_dict(orient="records")
 
-    for row in sample_rows:
-        print(row)
+    print("SAMPLE ROWS" , sample_rows)
 
     print(f"[Gemini Input] Columns={headers}")
     rules = call_gemini_generate_rules(headers, sample_rows)
