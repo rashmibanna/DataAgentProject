@@ -131,8 +131,16 @@ const FileSelection = () => {
             alert("Session expired. Please refresh the page.");
             return;
         }
-    
-
+    const accessToken = token || localStorage.getItem('google_access_token');
+    if (!accessToken) {
+        alert("❌ No authentication token found. Please login again.");
+        // Redirect to login page
+        window.location.href = `${process.env.REACT_APP_FRONTEND_URL || '/'}`;
+        return;
+    }
+     
+    console.log('✅ All validation passed. Email:', email);
+    console.log('✅ Token exists:', accessToken ? 'Yes' : 'No');
     showLoader("Uploading files...");
     
     try {
@@ -163,7 +171,8 @@ const mappingResult = await startMapping(
                 mapping: mappingResult.mapping,
                 fileUrl: mappingResult.file_url,
                 // Add any other details you need on the next page
-                email: email
+                email: email,
+                token: accessToken
             }
         });
         
@@ -171,6 +180,16 @@ const mappingResult = await startMapping(
         console.error("Mapping Process Error:", error);
         hideLoader();
         alert(`Process Failed: ${error.message}. Check the console for details.`);
+        if (error.message.includes('authentication') || 
+            error.message.includes('login') || 
+            error.message.includes('credentials')) {
+            alert(`${error.message}\n\nRedirecting to login page...`);
+            setTimeout(() => {
+                window.location.href = `${process.env.REACT_APP_FRONTEND_URL || '/'}`;
+            }, 2000);
+        } else {
+            alert(`❌ Process Failed: ${error.message}\n\nCheck the console for details.`);
+        }
     }
     };
 
@@ -183,6 +202,10 @@ const BACKEND_URL = `${process.env.REACT_APP_BASE_BACKEND_URL}/api/mapping`;
 // Helper to upload a single file
 const uploadFile = async (file) => {
     const userEmail = email; // Use the email derived from the URL
+    const accessToken = token || localStorage.getItem('google_access_token');
+    if (!accessToken) {
+        throw new Error('❌ No authentication token found. Please login again.');
+    }
     const formData = new FormData();
     formData.append('email', userEmail);
     formData.append('file', file);
@@ -190,6 +213,9 @@ const uploadFile = async (file) => {
     // Calls the /api/upload_local route
     const response = await fetch(`${process.env.REACT_APP_BASE_BACKEND_URL}/api/upload_local`, {
         method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${accessToken}`  // ✅ CRITICAL: Send token here
+        },
         body: formData,
     });
     
@@ -204,6 +230,13 @@ const uploadFile = async (file) => {
 
 // Helper to call the smart mapping endpoint
 const startMapping = async (hostFilePath, targetFilePath, userEmail) => {
+    const accessToken = token || localStorage.getItem('google_access_token');
+    
+    if (!accessToken) {
+        throw new Error('❌ No authentication token found. Please login again.');
+    }
+    
+    console.log('🔑 Starting mapping with token for:', userEmail);
     const formData = new FormData();
     formData.append('email', userEmail);
     // Use the 'local_path' result from the uploads as the file ID surrogate
@@ -215,6 +248,9 @@ const startMapping = async (hostFilePath, targetFilePath, userEmail) => {
     // Calls the /api/smart_mapping_with_files route
     const response = await fetch(`${BACKEND_URL}/smart_mapping_with_files`, {
         method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${accessToken}`  // ✅ CRITICAL: Send token here
+        },
         body: formData,
     });
 
