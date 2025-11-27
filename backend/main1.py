@@ -275,7 +275,7 @@ Example expected output:
 Columns:
 {', '.join(headers)}
 Sample rows:
-{json.dumps(sample_rows[:5], indent=2, default=str)}
+{json.dumps(sample_rows, indent=2, default=str)}
 """
 
     if previous_rules and user_guidance:
@@ -756,7 +756,11 @@ async def api_get_validation_rules(
 
     df = detect_and_cast_numeric(df)
     headers = list(df.columns)
-    sample_rows = df.head(3).to_dict(orient="records")
+    sample_size = min(len(df), 10)
+    sample_rows = df.sample(n=sample_size).to_dict(orient="records")
+
+    for row in sample_rows:
+        print(row)
 
     print(f"[Gemini Input] Columns={headers}")
     rules = call_gemini_generate_rules(headers, sample_rows)
