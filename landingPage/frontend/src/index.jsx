@@ -9,6 +9,9 @@ const HomePage = () => {
   const [showLogout, setShowLogout] = useState(false);
   const [email, setEmail] = useState(null);
 
+  const isClickable = isSignedIn;
+
+
   // Get email from URL (for OAuth callback)
   // const urlEmail = new URLSearchParams(location.search).get("email");
 
@@ -340,8 +343,9 @@ const HomePage = () => {
           maxWidth: '1300px'
         }}>
           {cards.map((card, idx) => {
-            const isClickable = isSignedIn;
             const isHovered = hoveredCard === idx;
+            const isDisabledComingSoon = idx === 1 || idx === 2;   // QA & Coding
+            const isClickable = isSignedIn && !isDisabledComingSoon;
             
             return (
               <div
@@ -367,37 +371,53 @@ const HomePage = () => {
                   height: '260px'
                 }}
               >
-                {!isSignedIn ? (
-                  <div style={{
-                    position: 'absolute',
-                    top: '12px',
-                    right: '12px',
-                    background: 'rgba(255,255,255,0.95)',
-                    padding: '4px 12px',
-                    borderRadius: '20px',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#5a6c8d',
-                    border: '1px solid #e0e0e0'
-                  }}>
-                    🔒 Sign in required
-                  </div>
-                ) : (
-                  <div style={{
-                    position: 'absolute',
-                    top: '12px',
-                    right: '12px',
-                    background: 'rgba(76, 175, 80, 0.1)',
-                    padding: '4px 12px',
-                    borderRadius: '20px',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#2e7d32',
-                    border: '1px solid rgba(76, 175, 80, 0.3)'
-                  }}>
-                    ✓ Available
-                  </div>
-                )}
+                {isDisabledComingSoon ? (
+  <div style={{
+    position: 'absolute',
+    top: '12px',
+    right: '12px',
+    background: 'rgba(255, 193, 7, 0.2)',
+    padding: '4px 12px',
+    borderRadius: '20px',
+    fontSize: '11px',
+    fontWeight: '600',
+    color: '#b8860b',
+    border: '1px solid rgba(255, 193, 7, 0.4)'
+  }}>
+    ⏳ Coming Soon
+  </div>
+) : !isSignedIn ? (
+  <div style={{
+    position: 'absolute',
+    top: '12px',
+    right: '12px',
+    background: 'rgba(255,255,255,0.95)',
+    padding: '4px 12px',
+    borderRadius: '20px',
+    fontSize: '11px',
+    fontWeight: '600',
+    color: '#5a6c8d',
+    border: '1px solid #e0e0e0'
+  }}>
+    🔒 Sign in required
+  </div>
+) : (
+  <div style={{
+    position: 'absolute',
+    top: '12px',
+    right: '12px',
+    background: 'rgba(76, 175, 80, 0.1)',
+    padding: '4px 12px',
+    borderRadius: '20px',
+    fontSize: '11px',
+    fontWeight: '600',
+    color: '#2e7d32',
+    border: '1px solid rgba(76, 175, 80, 0.3)'
+  }}>
+    ✓ Available
+  </div>
+)}
+
 
                 <div style={{
                   width: '65px',
