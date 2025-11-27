@@ -114,6 +114,14 @@ const DriveSelection = () => {
                 alert("Session expired. Please refresh the page.");
                 return;
             }
+
+            const accessToken = token || localStorage.getItem('google_access_token');
+        
+        if (!accessToken) {
+            alert("❌ No authentication token found. Please login again.");
+            window.location.href = `${process.env.REACT_APP_FRONTEND_URL || '/'}`;
+            return;
+        }
             showLoader("Creating mapping...");
 
             try {
@@ -128,6 +136,9 @@ const DriveSelection = () => {
 
                 const response = await fetch(`${process.env.REACT_APP_BASE_BACKEND_URL}/api/mapping/smart_mapping_with_files`, {
                     method: 'POST',
+                    headers: {
+                    'Authorization': `Bearer ${accessToken}`  // ✅ ADD THIS LINE
+                },
                     body: formData
                 });
 
@@ -147,7 +158,8 @@ const DriveSelection = () => {
                         targetFile,
                         mappingResult: result,
                         fileUrl: result.file_url,
-                        email : email
+                        email : email,
+                        token: accessToken
                     }
                 });
 
