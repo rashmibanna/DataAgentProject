@@ -531,12 +531,24 @@ async def smart_mapping_with_files(
     host_file_id: str = Form(...),
     target_file_id: str = Form(...),
     host_system: str = Form(DEFAULT_HOST_SYSTEM),
-    target_system: str = Form(DEFAULT_TARGET_SYSTEM)
+    target_system: str = Form(DEFAULT_TARGET_SYSTEM),
+    authorization: Optional[str] = Header(None)
 ):
     """
     Smart mapping with files from Google Drive OR In-Memory Session OR Local Path
     """
     try:
+        # ✅ ADD: Extract token
+        access_token = None
+        if authorization and authorization.startswith("Bearer "):
+            access_token = authorization.replace("Bearer ", "").strip()
+            logger.info(f"🔑 Token received for {email}")
+        else:
+            raise HTTPException(
+                status_code=401,
+                detail="❌ No credentials found. User must login first via /login endpoint."
+            )
+        
         logger.info(f"📥 Starting mapping for user: {email}")
         logger.info(f"📥 Inputs: Host={host_file_id}, Target={target_file_id}")
         
@@ -566,10 +578,10 @@ async def smart_mapping_with_files(
         # 3. Assume Google Drive
         else:
             logger.info("✅ Host file: GOOGLE DRIVE")
-            host_file = find_file_by_id(host_file_id, email)
+            host_file = find_file_by_id(host_file_id, email,access_token)
             if not host_file:
                 raise HTTPException(status_code=404, detail=f"Host file not found in Drive: {host_file_id}")
-            host_fields = extract_json_content_from_file(host_file_id, email)
+            host_fields = extract_json_content_from_file(host_file_id, email,access_token)
 
         # ==================== HANDLE TARGET FILE ====================
         # 1. Check if it's an In-Memory Token
@@ -596,10 +608,10 @@ async def smart_mapping_with_files(
         # 3. Google Drive
         else:
             logger.info("✅ Target file: GOOGLE DRIVE")
-            target_file = find_file_by_id(target_file_id, email)
+            target_file = find_file_by_id(target_file_id, email,access_token)
             if not target_file:
                 raise HTTPException(status_code=404, detail=f"Target file not found in Drive: {target_file_id}")
-            target_fields = extract_json_content_from_file(target_file_id, email)
+            target_fields = extract_json_content_from_file(target_file_id, email,access_token)
 
         logger.info(f"📄 Processing: {host_file['name']} -> {target_file['name']}")
 
@@ -622,7 +634,8 @@ async def smart_mapping_with_files(
             parent_id, 
             host_base_name,
             target_base_name,
-            email 
+            email ,
+            access_token
         )
 
         logger.info(f"✅ Mapping complete. Upload Response keys: {upload_resp.keys() if upload_resp else 'None'}")

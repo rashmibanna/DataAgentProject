@@ -23,8 +23,14 @@ logger = logging.getLogger(__name__)
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 
 # ✅ FIX: Remove the random token picker - always require email
-def get_drive_service(email: str):
+def get_drive_service(email: str , access_token: Optional[str] = None):
     """Get Drive service using OAuth credentials for user's email"""
+    if access_token:
+        logger.info(f"✅ Using provided access token for {email}")
+        creds = Credentials(token=access_token)
+        service = build("drive", "v3", credentials=creds, cache_discovery=False)
+        return service 
+    
     token_path = f"tokens/{email}.json"
     
     if not os.path.exists(token_path):
@@ -52,9 +58,9 @@ def get_drive_service(email: str):
 
 
 # ---------------------- FINDERS ----------------------
-def find_folder_by_name(foldername: str, email: str):
+def find_folder_by_name(foldername: str, email : str ,access_token: str):
     """Find folder(s) by exact name."""
-    service = get_drive_service(email)
+    service = get_drive_service(email,access_token)
     res = (
         service.files()
         .list(
@@ -67,10 +73,10 @@ def find_folder_by_name(foldername: str, email: str):
     return res.get("files", [])
 
 
-def find_files_containing(keyword: str, email: str):
+def find_files_containing(keyword: str, email: str , access_token : Optional[str] = None):
     """Search files by partial name (case-insensitive)."""
     try:
-        service = get_drive_service(email)
+        service = get_drive_service(email , access_token)
         query = f"name contains '{keyword}' and trashed=false"
         results = (
             service.files()
@@ -87,10 +93,10 @@ def find_files_containing(keyword: str, email: str):
         return []
 
 
-def find_file_by_id(file_id: str, email: str):
+def find_file_by_id(file_id: str, email: str , access_token: Optional[str] = None):
     """Get exact file metadata by ID."""
     try:
-        service = get_drive_service(email)
+        service = get_drive_service(email,access_token)
         file = service.files().get(
             fileId=file_id, 
             fields="id, name, mimeType, parents",
@@ -109,18 +115,18 @@ def find_file_by_id(file_id: str, email: str):
         return None
 
     
-def get_file_metadata(file_id: str, email: str):
+def get_file_metadata(file_id: str, email: str , access_token: Optional[str] = None):
     """Alias for find_file_by_id for backward compatibility"""
-    return find_file_by_id(file_id, email)
+    return find_file_by_id(file_id, email,access_token)
 
 
 # ---------------------- DOWNLOAD ----------------------
-def download_file_bytes(file_id: str, email: str) -> bytes:
+def download_file_bytes(file_id: str, email: str , access_token: Optional[str] = None) -> bytes:
     """
     Downloads or exports Google Drive files properly.
     """
     try:
-        service = get_drive_service(email)
+        service = get_drive_service(email,access_token)
         file_meta = service.files().get(fileId=file_id, fields="id, name, mimeType").execute()
         mime_type = file_meta.get("mimeType", "")
         file_name = file_meta.get("name", "downloaded_file")
@@ -160,10 +166,11 @@ def upload_bytes_to_folder_with_email(
     filename: str, 
     data_bytes: bytes, 
     mimetype: str, 
-    email: str
+    email: str,
+    access_token: Optional[str] = None
 ):
     """Upload bytes to Drive using email-based credentials"""
-    service = get_drive_service(email)
+    service = get_drive_service(email , access_token)
     media = MediaIoBaseUpload(io.BytesIO(data_bytes), mimetype=mimetype, resumable=True)
     metadata = {"name": filename}
     
@@ -180,10 +187,10 @@ def upload_bytes_to_folder_with_email(
     return uploaded
 
 
-def create_shareable_link_with_email(file_id: str, email: str) -> str:
+def create_shareable_link_with_email(file_id: str, email: str , access_token: Optional[str] = None) -> str:
     """Create shareable link using email-based credentials"""
     try:
-        service = get_drive_service(email)
+        service = get_drive_service(email , access_token)
         service.permissions().create(
             fileId=file_id,
             body={"role": "reader", "type": "anyone"},
@@ -197,9 +204,9 @@ def create_shareable_link_with_email(file_id: str, email: str) -> str:
         return f"https://drive.google.com/file/d/{file_id}/view?usp=sharing"
 
 
-def delete_file(file_id: str, email: str):
+def delete_file(file_id: str, email: str , access_token: Optional[str] = None):
     """Delete a file by ID."""
-    service = get_drive_service(email)
+    service = get_drive_service(email,access_token)
     service.files().delete(fileId=file_id).execute()
     logger.info(f"🗑️ Deleted file: {file_id}")
 
@@ -216,7 +223,8 @@ def upload_to_gdrive(
     folder_id: Optional[str],
     host_system: str,
     target_system: str,
-    email: str  # ✅ FIX: REQUIRED parameter
+    email: str , # ✅ FIX: REQUIRED parameter,
+    access_token: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Convert mapping JSON → Excel and upload to Drive.
@@ -287,10 +295,11 @@ def upload_to_gdrive(
             filename, 
             excel_bytes,
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            email
+            email ,
+            access_token
         )
         
-        file_url = create_shareable_link_with_email(uploaded["id"], email)
+        file_url = create_shareable_link_with_email(uploaded["id"], email , access_token)
         
         logger.info(f"✅ Mapping uploaded successfully to {email}'s Drive: {filename}")
         
@@ -326,11 +335,11 @@ def extract_json_content_from_file_local(file_path: str) -> Any:
         raise
 
 
-def extract_json_content_from_file(file_id: str, email: str) -> Any:
+def extract_json_content_from_file(file_id: str, email: str , access_token: Optional[str] = None) -> Any:
     """Download and parse JSON from Google Drive file"""
     try:
         logger.info(f"Downloading from Google Drive: {file_id} for user: {email}")
-        data = download_file_bytes(file_id, email)  # ✅ FIX: Pass email
+        data = download_file_bytes(file_id, email , access_token)  # ✅ FIX: Pass email
         text = data.decode("utf-8", errors="ignore")
         return safe_json_parse(text)
     except Exception as e:
