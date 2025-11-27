@@ -89,6 +89,7 @@ const HomePage = () => {
   }, []);
 
   const dashboardUrl = `${process.env.REACT_APP_FRONTEND2_URL}/dashboard`;
+  const PMUrl = `${process.env.REACT_APP_PM_URL}`;
 
   const handleSignIn = () => {
      console.log(`${process.env.REACT_APP_BASE_BACKEND_URL}/login`)
@@ -138,7 +139,12 @@ const HomePage = () => {
           console.log('Coding Agent - Coming soon');
           break;
         case 3: // PM Agent
-          console.log('PM Agent - Coming soon');
+          if (currentEmail) {
+            window.location.href = `${PMUrl}?email=${encodeURIComponent(currentEmail)}&token=${encodeURIComponent(currentToken || '')}`;
+          } else {
+             alert("Session error. Please login again.");
+             handleLogout();
+          }
           break;
         default:
           break;
