@@ -340,8 +340,8 @@ def build_mapping_prompt(host_fields: Any, target_fields: Any, host_system: str,
     """Build the enhanced LLM prompt for field mapping"""
     
     # Truncate if too large to prevent token limits
-    host_preview = host_fields[:10] if isinstance(host_fields, list) else host_fields
-    target_preview = target_fields[:10] if isinstance(target_fields, list) else target_fields
+    host_preview = host_fields[:15] if isinstance(host_fields, list) else host_fields
+    target_preview = target_fields[:15] if isinstance(target_fields, list) else target_fields
 
     src_str = json.dumps(host_preview, indent=2, ensure_ascii=False)
     tgt_str = json.dumps(target_preview, indent=2, ensure_ascii=False)
@@ -437,6 +437,11 @@ def normalize_llm_mapping_response(parsed: Any, host_system: str, target_system:
         src_path = (item.get("Source Field (JSON Path)") or item.get("source") or item.get("Source") or "")
         src_data_type = item.get("Source Data Type", "")
         src_sample = item.get("Sample Source Value", "")
+        default_transform = "Direct Mapping"
+        if tgt_field == "N/A":
+            default_transform = "No Matching Field"
+
+        transformation = item.get("Transformation / Logic", item.get("transformation", default_transform))
         transformation = item.get("Transformation / Logic", item.get("transformation", "Direct Mapping"))
         tgt_field = (item.get("Target Field (API Name)") or item.get("Target Field") or item.get("target") or "N/A")
         tgt_data_type = item.get("Target Data Type", "")
@@ -495,30 +500,31 @@ def llm_field_mapping(
         parsed = json.loads(match.group(0))
         normalized = normalize_llm_mapping_response(parsed, host_system, target_system)
         
+
         source_fields_from_data = extract_all_leaf_paths_from_json(host_fields)
         mapped_sources = {m["source"] for m in normalized}
         
         # Find missing fields
         missing_sources = [s for s in source_fields_from_data if s not in mapped_sources]
         
-        # Add missing mappings
-        for missing in missing_sources:
-            normalized.append({
-                "source": missing,
-                "target": "N/A",
-                "details": {
-                    "source_system": host_system,
-                    "target_system": target_system,
-                    "transformation": "No mapping found",
-                    "notes": "Field not mapped by LLM",
-                    "source_data_type": "",
-                    "source_sample": "",
-                    "target_data_type": "",
-                    "target_sample": "",
-                }
-            })
+        # # Add missing mappings
+        # for missing in missing_sources:
+        #     normalized.append({
+        #         "source": missing,
+        #         "target": "N/A",
+        #         "details": {
+        #             "source_system": host_system,
+        #             "target_system": target_system,
+        #             "transformation": "No mapping found",
+        #             "notes": "Field not mapped by LLM",
+        #             "source_data_type": "",
+        #             "source_sample": "",
+        #             "target_data_type": "",
+        #             "target_sample": "",
+        #         }
+        #     })
         # ✅ END OF ADDED BLOCK
-        
+
         if not normalized:
             raise ValueError("Gemini returned empty mapping")
 
