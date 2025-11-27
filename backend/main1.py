@@ -386,7 +386,7 @@ async def oauth2callback(request: Request):
             raise ValueError("No email in user profile")
 
         # # Save credentials to tokens/{email}.json
-        # save_credentials(email, tokens)
+        save_credentials(email, tokens)
         
         # # ✅ NEW: Create session and set cookie
         # session_token = create_session(email, access_token)
