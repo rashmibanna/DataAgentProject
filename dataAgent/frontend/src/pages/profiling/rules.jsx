@@ -340,7 +340,7 @@ const ProfilingRules = () => {
                 The validation results have been saved to your Google Drive.{' '}
                 <span style={{ fontSize: "15px" }}>
   <a 
-    href={result.workbook?.webViewLink || result.workbook?.id || '#'} 
+    href={result.workbook?.webViewLink || result.workbook?.id ? `https://docs.google.com/spreadsheets/d/${result.workbook.id}/edit` : '#'} 
     target="_blank" 
     rel="noopener noreferrer"
     style={{ color: '#0d6efd', fontWeight: '600', textDecoration: 'none' }}
