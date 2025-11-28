@@ -125,7 +125,15 @@ const Dashboard = () => {
 
   return (
     <div className="body">
-      {/* Top Right Buttons */}
+      <div className="header" style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        padding: '20px 40px'
+      }}>
+        <p className="subtitle">Hi there! What can I do for you today?</p>
+        
+        {/* Top Right Buttons */}
       <div style={{ 
         position: 'fixed',
         top: '50px',
@@ -198,6 +206,7 @@ const Dashboard = () => {
         >
           <i className="fas fa-sign-out-alt"></i> Logout
         </button>
+      </div>
       </div>
       
       <div className="grid">
