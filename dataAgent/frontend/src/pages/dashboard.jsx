@@ -125,38 +125,78 @@ const Dashboard = () => {
 
   return (
     <div className="body">
-      <div className="header" style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
+      {/* Top Right Buttons */}
+      <div style={{ 
+        position: 'fixed',
+        top: '50px',
+        right: '50px',
+        display: 'flex',
+        gap: '12px',
         alignItems: 'center',
-        padding: '20px 40px'
+        zIndex: 10
       }}>
-        <p className="subtitle">Hi there! What can I do for you today?</p>
-        
-        <button 
-          onClick={handleLogout}
+        <button
+          onClick={() => window.location.href = `/dashboard?email=${email}`}
           style={{
-            padding: '8px 20px',
-            background: '#e74c3c',
+            background: 'linear-gradient(135deg, #1453c6, #2a6ce8)',
             color: 'white',
             border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
+            borderRadius: '10px',
+            padding: '10px 20px',
             fontWeight: '600',
-            fontSize: '14px',
-            transition: 'all 0.3s ease',
-            boxShadow: '0 2px 6px rgba(231, 76, 60, 0.3)'
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '0.95rem',
+            transition: 'all 0.3s',
+            boxShadow: '0 4px 12px rgba(20, 83, 198, 0.2)'
           }}
           onMouseEnter={(e) => {
-            e.target.style.background = '#c0392b';
             e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 6px 16px rgba(20, 83, 198, 0.3)';
           }}
           onMouseLeave={(e) => {
-            e.target.style.background = '#e74c3c';
             e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 12px rgba(20, 83, 198, 0.2)';
           }}
         >
-          Logout
+          <i className="fas fa-arrow-left"></i> Back
+        </button>
+
+        <button
+          onClick={() => {
+            if (window.confirm('Are you sure you want to logout?')) {
+              window.location.href = '/';
+            }
+          }}
+          style={{ 
+            background: '#dc3545',
+            color: 'white',
+            border: 'none',
+            borderRadius: '10px',
+            padding: '10px 20px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '0.95rem',
+            transition: 'all 0.3s',
+            boxShadow: '0 4px 12px rgba(220, 53, 69, 0.2)'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.background = '#bb2d3b';
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 6px 16px rgba(220, 53, 69, 0.3)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.background = '#dc3545';
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 12px rgba(220, 53, 69, 0.2)';
+          }}
+        >
+          <i className="fas fa-sign-out-alt"></i> Logout
         </button>
       </div>
       
