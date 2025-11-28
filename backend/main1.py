@@ -499,6 +499,93 @@ async def logout(
 # ----------------------------
 # Google Drive API Routes
 # ----------------------------
+
+# Add this at the top with other imports if not already there
+import secrets
+
+# One-time ticket store (use Redis in production)
+ticket_store = {}
+
+# Clean up expired tickets periodically
+def cleanup_expired_tickets():
+    """Remove expired tickets from store"""
+    current_time = time.time()
+    expired = [token for token, data in ticket_store.items() 
+               if current_time > data["expires_at"]]
+    for token in expired:
+        del ticket_store[token]
+    if expired:
+        logger.info(f"🧹 Cleaned up {len(expired)} expired tickets")
+
+@app.post("/api/generate-ticket")
+async def generate_ticket(email: str = Form(...), access_token: str = Form(...)):
+    """Generate one-time ticket for cross-app navigation"""
+    
+    # Verify user exists in store
+    if email not in USER_STORE or "credentials" not in USER_STORE[email]:
+        raise HTTPException(status_code=401, detail="User not authenticated")
+    
+    # Verify token matches (basic validation)
+    stored_creds = USER_STORE[email]["credentials"]
+    if stored_creds.token != access_token:
+        raise HTTPException(status_code=401, detail="Invalid access token")
+    
+    # Clean up old tickets
+    cleanup_expired_tickets()
+    
+    # Generate secure random ticket
+    ticket_token = secrets.token_urlsafe(32)
+    
+    # Store credentials temporarily (5 minutes)
+    ticket_store[ticket_token] = {
+        "email": email,
+        "access_token": access_token,
+        "created_at": time.time(),
+        "expires_at": time.time() + 300,  # 5 minutes expiry
+        "used": False
+    }
+    
+    logger.info(f"✅ Ticket generated for {email} (expires in 5 min)")
+    
+    return {
+        "ticket": ticket_token,
+        "expires_in": 300
+    }
+
+
+@app.post("/api/validate-ticket")
+async def validate_ticket(ticket: str = Form(...)):
+    """Validate and consume one-time ticket"""
+    
+    # Check if ticket exists
+    if ticket not in ticket_store:
+        raise HTTPException(status_code=401, detail="Invalid or expired ticket")
+    
+    ticket_data = ticket_store[ticket]
+    
+    # Check if already used
+    if ticket_data["used"]:
+        del ticket_store[ticket]
+        raise HTTPException(status_code=401, detail="Ticket already used")
+    
+    # Check if expired
+    if time.time() > ticket_data["expires_at"]:
+        del ticket_store[ticket]
+        raise HTTPException(status_code=401, detail="Ticket expired")
+    
+    # Delete ticket immediately (single-use)
+    email = ticket_data["email"]
+    access_token = ticket_data["access_token"]
+    del ticket_store[ticket]
+    
+    logger.info(f"✅ Ticket validated and consumed for {email}")
+    
+    return {
+        "email": email,
+        "access_token": access_token
+    }
+
+
 @app.get("/api/drive/search")
 def search_drive(email: str = Query(...), q: str = Query("")):
     """Search Google Drive for files"""

@@ -531,7 +531,7 @@ const DriveSelection = () => {
                     }}
                 >
                     <a
-                        href="/"
+                        href="./profiling/optionsMapping.jsx"
                         style={{
                             color: "#1453c6",
                             textDecoration: "none",
@@ -540,7 +540,7 @@ const DriveSelection = () => {
                             alignItems: "center",
                         }}
                     >
-                        <i className="fas fa-arrow-left"></i> Back to home
+                        <i className="fas fa-arrow-left"></i> Back to File Selection
                     </a>
                 </div>
 

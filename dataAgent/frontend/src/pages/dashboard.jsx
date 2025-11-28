@@ -44,40 +44,89 @@ const Dashboard = () => {
     
     // 1. Check if data was passed in URL (Redirected from Home Page)
     const queryParams = new URLSearchParams(window.location.search);
-    const urlEmail = queryParams.get("email");
-    const urlToken = queryParams.get("token");
+    const ticket = queryParams.get("ticket");
 
     // 2. Check LocalStorage (User refreshed the page)
     const storedEmail = localStorage.getItem("user_email");
     const storedToken = localStorage.getItem("google_access_token");
 
-    if (urlEmail && urlEmail !== "undefined") {
-      console.log("📥 Receiving Session via URL...");
+    if (storedEmail && storedToken && storedEmail !== "undefined") {
+    // User already has valid session
+    console.log("♻️ Restoring Session from Storage...");
+    setEmail(storedEmail);
+    setToken(storedToken);
+    setIsLoading(false);
+  } 
+    
+  else if (ticket) {
+    console.log("🎫 Validating one-time ticket...");
+    
+    const formData = new FormData();
+    formData.append('ticket', ticket);
+    
+    fetch(`${process.env.REACT_APP_BASE_BACKEND_URL}/api/validate-ticket`, {
+      method: 'POST',
+      body: formData
+    })
+    .then(res => {
+      if (!res.ok) {
+        throw new Error('Invalid or expired ticket');
+      }
+      return res.json();
+    })
+    .then(data => {
+      console.log("✅ Ticket validated for:", data.email);
       
-      // Save valid data to storage
-      localStorage.setItem("user_email", urlEmail);
-      if (urlToken) localStorage.setItem("google_access_token", urlToken);
-
-      // Set State
-      setEmail(urlEmail);
-      setToken(urlToken);
-
-      // 🧹 Clean the URL (Remove email/token from address bar)
+      // Store credentials in localStorage
+      localStorage.setItem("user_email", data.email);
+      localStorage.setItem("google_access_token", data.access_token);
+      
+      // Update state
+      setEmail(data.email);
+      setToken(data.access_token);
+      setIsLoading(false);
+      
+      // Clean URL (remove ticket from address bar)
       window.history.replaceState({}, document.title, window.location.pathname);
       
-      setIsLoading(false);
-    } 
-    else if (storedEmail && storedEmail !== "undefined") {
-      console.log("♻️ Restoring Session from Storage...");
-      setEmail(storedEmail);
-      setToken(storedToken);
-      setIsLoading(false);
-    } 
-    else {
-      console.warn("⛔ No session found. Redirecting to Landing Page...");
-      // Redirect back to App A (Landing Page)
+      console.log("🧹 URL cleaned - ticket removed");
+    })
+    .catch(error => {
+      console.error("❌ Ticket validation failed:", error);
+      alert("Session expired or invalid. Please login again.");
+      // Redirect back to landing page
       window.location.href = `${process.env.REACT_APP_BASE_FRONTEND_URL}`;
-    }
+    });
+  }
+  // SCENARIO C: No session found at all
+  else {
+    console.warn("⛔ No session found. Redirecting to Landing Page...");
+    window.location.href = `${process.env.REACT_APP_BASE_FRONTEND_URL}`;
+  }
+    //   // Save valid data to storage
+    //   localStorage.setItem("user_email", urlEmail);
+    //   if (urlToken) localStorage.setItem("google_access_token", urlToken);
+
+    //   // Set State
+    //   setEmail(urlEmail);
+    //   setToken(urlToken);
+
+    //   // 🧹 Clean the URL (Remove email/token from address bar)
+    //   window.history.replaceState({}, document.title, window.location.pathname);
+      
+    //   setIsLoading(false);
+    // } 
+    // else if (storedEmail && storedEmail !== "undefined") {
+    //   console.log("♻️ Restoring Session from Storage...");
+    //   setEmail(storedEmail);
+    //   setToken(storedToken);
+    //   setIsLoading(false);
+    // } 
+    // else {
+    //   console.warn("⛔ No session found. Redirecting to Landing Page...");
+    //   // Redirect back to App A (Landing Page)
+    //   window.location.href = `${process.env.REACT_APP_BASE_FRONTEND_URL}`;
+    // }
     // --- AUTHENTICATION LOGIC END ---
   }, []);
 
