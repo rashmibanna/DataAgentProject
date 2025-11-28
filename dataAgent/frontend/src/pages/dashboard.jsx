@@ -77,6 +77,9 @@ const Dashboard = () => {
     .then(data => {
       console.log("✅ Ticket validated for:", data.email);
       
+      console.log("📝 Token length:", data.access_token?.length);
+  console.log("📝 Token starts with:", data.access_token?.substring(0, 20));
+  console.log("📝 Token ends with:", data.access_token?.substring(data.access_token.length - 20));
       // Store credentials in localStorage
       localStorage.setItem("user_email", data.email);
       localStorage.setItem("google_access_token", data.access_token);
