@@ -84,6 +84,7 @@ const GoogleDrivePicker = forwardRef(({ onFileSelected, onReady }, ref) => {
     const picker = new window.google.picker.PickerBuilder()
       .addView(docsView)
       .setOAuthToken(googleAccessToken)
+      .setAppId(${process.env.REACT_APP_CLIENT_NEW_ID})
       .setDeveloperKey(apiKey)
       .setCallback(pickerCallback)
       .build();
