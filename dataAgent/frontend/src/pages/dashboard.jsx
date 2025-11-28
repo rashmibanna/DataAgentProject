@@ -101,7 +101,7 @@ const Dashboard = () => {
     }
     
     // 3. Redirect to Landing Page
-    window.location.href = `${process.env.REACT_APP_BASE_BACKEND_URL}`;
+    window.location.href = `${process.env.REACT_APP_BASE_FRONTEND_URL}?action=logout`;
   };
 
   if (isLoading) {
