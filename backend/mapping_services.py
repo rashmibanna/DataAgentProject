@@ -336,48 +336,203 @@ def hybrid_smart_map(
 
 
 # ==================== LLM UTILITIES ====================
+# def build_mapping_prompt(host_fields: Any, target_fields: Any, host_system: str, target_system: str) -> str:
+#     """Build the enhanced LLM prompt for field mapping"""
+    
+#     # Truncate if too large to prevent token limits
+#     host_preview = host_fields[:15] if isinstance(host_fields, list) else host_fields
+#     target_preview = target_fields[:15] if isinstance(target_fields, list) else target_fields
+
+#     src_str = json.dumps(host_preview, indent=2, ensure_ascii=False)
+#     tgt_str = json.dumps(target_preview, indent=2, ensure_ascii=False)
+
+#     return f"""You are an expert **Data Integration and Schema Mapping Architect**.
+    
+#     Context:
+#     Host System: {host_system}
+#     Target System: {target_system}
+
+#     Host Data Sample:
+#     {src_str}
+
+#     Target Data Sample:
+#     {tgt_str}
+
+#     Objective:
+#     Map every field from the Host system to the Target system.
+    
+#     Output Format:
+#     Return ONLY a JSON Array.
+#     [
+#       {{
+#         "Source Field (JSON Path)": "Field_Name",
+#         "Source System": "{host_system}",
+#         "Source Data Type": "string",
+#         "Sample Source Value": "Example",
+#         "Transformation / Logic": "Direct Mapping",
+#         "Target Field (API Name)": "Mapped_Field_Name",
+#         "Target System": "{target_system}",
+#         "Target Data Type": "string",
+#         "Sample Target Value": "Example",
+#         "Comments / Notes": "Reasoning"
+#       }}
+#     ]
+#     """
+
+# def build_mapping_prompt(host_fields: Any, target_fields: Any, host_system: str, target_system: str) -> str:
+#     """Build the enhanced LLM prompt for field mapping"""
+    
+#     # Truncate if too large to prevent token limits
+#     host_preview = host_fields[:15] if isinstance(host_fields, list) else host_fields
+#     target_preview = target_fields[:15] if isinstance(target_fields, list) else target_fields
+
+#     src_str = json.dumps(host_preview, indent=2, ensure_ascii=False)
+#     tgt_str = json.dumps(target_preview, indent=2, ensure_ascii=False)
+
+#     return f"""You are an expert **Data Integration and Schema Mapping Architect**.
+    
+#     Context:
+#     Host System: {host_system}
+#     Target System: {target_system}
+
+#     Host Data Sample:
+#     {src_str}
+
+#     Target Data Sample:
+#     {tgt_str}
+
+#     Objective:
+#     Map every field from the Host system to the Target system.
+    
+#     Output Format:
+#     Return ONLY a JSON Array.
+#     [
+#       {{
+#         "Source Field (JSON Path)": "Field_Name",
+#         "Source System": "{host_system}",
+#         "Source Data Type": "string",
+#         "Sample Source Value": "Example",
+#         "Transformation / Logic": "Direct Mapping",
+#         "Target Field (API Name)": "Mapped_Field_Name",
+#         "Target System": "{target_system}",
+#         "Target Data Type": "string",
+#         "Sample Target Value": "Example",
+#         "Comments / Notes": "Reasoning"
+#       }}
+#     ]
+#     """
+
 def build_mapping_prompt(host_fields: Any, target_fields: Any, host_system: str, target_system: str) -> str:
     """Build the enhanced LLM prompt for field mapping"""
     
-    # Truncate if too large to prevent token limits
-    host_preview = host_fields[:15] if isinstance(host_fields, list) else host_fields
-    target_preview = target_fields[:15] if isinstance(target_fields, list) else target_fields
+    src_str = json.dumps(host_fields, indent=2, ensure_ascii=False)
+    tgt_str = json.dumps(target_fields, indent=2, ensure_ascii=False)
 
-    src_str = json.dumps(host_preview, indent=2, ensure_ascii=False)
-    tgt_str = json.dumps(target_preview, indent=2, ensure_ascii=False)
+    return f"""
+You are an expert **Data Integration and Schema Mapping Architect** specializing in enterprise data systems (ERP, CRM, Billing, HRMS, etc.).
+You must deeply analyze and map fields between two system payloads.
 
-    return f"""You are an expert **Data Integration and Schema Mapping Architect**.
-    
-    Context:
-    Host System: {host_system}
-    Target System: {target_system}
+---
 
-    Host Data Sample:
-    {src_str}
+### CONTEXT
 
-    Target Data Sample:
-    {tgt_str}
+**Host System:** {host_system}  
+**Target System:** {target_system}
 
-    Objective:
-    Map every field from the Host system to the Target system.
-    
-    Output Format:
-    Return ONLY a JSON Array.
-    [
-      {{
-        "Source Field (JSON Path)": "Field_Name",
-        "Source System": "{host_system}",
-        "Source Data Type": "string",
-        "Sample Source Value": "Example",
-        "Transformation / Logic": "Direct Mapping",
-        "Target Field (API Name)": "Mapped_Field_Name",
-        "Target System": "{target_system}",
-        "Target Data Type": "string",
-        "Sample Target Value": "Example",
-        "Comments / Notes": "Reasoning"
-      }}
-    ]
-    """
+You are given two full JSON payloads — one from the Host system (source) and one from the Target system (destination).  
+
+**HOST JSON:**
+{src_str}
+
+**TARGET JSON:**
+{tgt_str}
+
+---
+
+### OBJECTIVE
+
+Perform a **deep recursive analysis** of both JSON payloads and generate a **Field Mapping Specification** that shows how each source field maps to the destination system field.
+
+You must:
+- Traverse nested objects and arrays recursively.
+- Detect each leaf field (like `ORDER.ORDER_STATUS.ORACLE_ORDER_NUMBER`).
+- Match each host field to the most appropriate target field based on name similarity, semantics, and context.
+
+---
+
+### MAPPING OUTPUT RULES
+
+For **each field in the HOST JSON**, create one JSON object in the output array containing:
+
+- **"Source Field (JSON Path)"** → full path of the field in the HOST JSON (e.g., `ORDER.ORDER_STATUS.ORACLE_ORDER_NUMBER`)
+- **"Source System"** → `{host_system}`
+- **"Source Data Type"** →  
+  Predict the correct data type (`string`, `integer`, `float`, `boolean`, `date`, `datetime`, `object`, or `array`)  
+  based on the field name and/or its sample value.  
+  If `{host_system}` is known (e.g., Oracle ERP, SAP, Workday), use realistic system-specific data typing conventions.  
+  Never leave this field blank — always infer a best guess.
+- **"Sample Source Value"** →  
+  Provide a realistic example value consistent with the detected data type.  
+  If `{host_system}` is known, generate realistic example data (e.g., for Oracle ERP use "12345" or "Cancelled", for Workday use "2024-10-25").  
+  If not known, use domain-appropriate sample data (e.g., string → "Example", number → 1234).
+- **"Transformation / Logic"** →  
+  Describe how the source value should be transformed before mapping (e.g., "Direct Mapping", "Conditional Mapping", "Lookup to Reference Table", "Translate Status", "Static Value Assignment", etc.).  
+  If not applicable, use `"Direct Mapping"`.
+- **"Target Field (API Name)"** →  
+  Name of the target field that best matches, or `"N/A"` if no suitable field found.
+- **"Target System"** → `{target_system}`
+- **"Target Data Type"** →  
+  Predict or infer the correct data type for the target field.  
+  Use conventions if `{target_system}` is known (e.g., Salesforce `__c` fields → string/ID, SAP IDs → integer).  
+  Never leave this field blank — always fill a best guess.
+- **"Sample Target Value"** →  
+  Provide a realistic example value that aligns with the predicted data type and system conventions.
+- **"Comments / Notes"** →  
+  Explain the mapping logic in one line (why it maps this way, or what transformation applies).
+
+---
+
+### ADDITIONAL REQUIREMENTS
+
+1. Every HOST field must appear **exactly once**.
+2. If no clear target match exists, set `"Target Field (API Name)"` = `"N/A"` but still fill `"Target Data Type"` and `"Sample Target Value"` with predicted realistic placeholders.
+3. Prefer semantic and contextual matches over pure name similarity.
+4. Use your internal understanding of common system fields to enrich sample values and types.
+5. Return **only a valid JSON array** of objects — no markdown, no extra text.
+
+---
+
+### EXAMPLE OUTPUT (Structure Only)
+
+[
+  {{
+    "Source Field (JSON Path)": "ORDER.ORDER_STATUS.ORACLE_ORDER_NUMBER",
+    "Source System": "{host_system}",
+    "Source Data Type": "string",
+    "Sample Source Value": "ORD-12345",
+    "Transformation / Logic": "Direct Mapping",
+    "Target Field (API Name)": "APTS_Oracle_Order_Number__c",
+    "Target System": "{target_system}",
+    "Target Data Type": "string",
+    "Sample Target Value": "ORD-98765",
+    "Comments / Notes": "Oracle Order Number mapped directly to Salesforce Order Number field"
+  }},
+  {{
+    "Source Field (JSON Path)": "ORDER.ORDER_STATUS.ATTRIBUTE1",
+    "Source System": "{host_system}",
+    "Source Data Type": "string",
+    "Sample Source Value": "Cancelled in Oracle",
+    "Transformation / Logic": "Translation Mapping",
+    "Target Field (API Name)": "Apttus_Config2__Status__c",
+    "Target System": "{target_system}",
+    "Target Data Type": "string",
+    "Sample Target Value": "Cancelled",
+    "Comments / Notes": "Translate status values between Oracle and Salesforce"
+  }}
+]
+
+Return **only the JSON array** — nothing else.
+"""
 
 
 def _run_gemini_sync(prompt: str) -> str:
@@ -419,13 +574,6 @@ def normalize_llm_mapping_response(parsed: Any, host_system: str, target_system:
         parsed = parsed["mapping"]
     
     if not isinstance(parsed, list):
-        # Sometimes LLM wraps it in a top level key, try to find a list
-        if isinstance(parsed, dict):
-             for k,v in parsed.items():
-                 if isinstance(v, list):
-                     parsed = v
-                     break
-        if not isinstance(parsed, list):
              raise ValueError("LLM returned non-list structure")
 
     normalized = []
@@ -437,11 +585,6 @@ def normalize_llm_mapping_response(parsed: Any, host_system: str, target_system:
         src_path = (item.get("Source Field (JSON Path)") or item.get("source") or item.get("Source") or "")
         src_data_type = item.get("Source Data Type", "")
         src_sample = item.get("Sample Source Value", "")
-        default_transform = "Direct Mapping"
-        if tgt_field == "N/A":
-            default_transform = "No Matching Field"
-
-        transformation = item.get("Transformation / Logic", item.get("transformation", default_transform))
         transformation = item.get("Transformation / Logic", item.get("transformation", "Direct Mapping"))
         tgt_field = (item.get("Target Field (API Name)") or item.get("Target Field") or item.get("target") or "N/A")
         tgt_data_type = item.get("Target Data Type", "")
