@@ -43,6 +43,7 @@ const GoogleDrivePicker = forwardRef(({ onFileSelected, onReady }, ref) => {
   }, [googleAccessToken, onReady]);
 
   const pickerCallback = (data) => {
+    console.log("inside picker call back");
     if (data.action === window.google.picker.Action.PICKED) {
       const doc = data.docs[0];
       const fileId = doc.id;
@@ -79,14 +80,14 @@ const GoogleDrivePicker = forwardRef(({ onFileSelected, onReady }, ref) => {
       console.error("❌ REACT_APP_GOOGLE_API_KEY not found in environment");
       return;
     }
-    
+   console.log("before picker variable");
     const picker = new window.google.picker.PickerBuilder()
       .addView(docsView)
       .setOAuthToken(googleAccessToken)
       .setDeveloperKey(apiKey)
       .setCallback(pickerCallback)
       .build();
-    
+    console.log("after picker variable");
     picker.setVisible(true);
   };
 

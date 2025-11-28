@@ -85,6 +85,7 @@ const ProfilingOptions = () => {
   }, []);
 
 const showDrive = () => {
+  console.log('showing drive');
   setActiveOption('drive'); 
   if (isPickerReady && drivePickerRef.current) {
     drivePickerRef.current.open(); 
