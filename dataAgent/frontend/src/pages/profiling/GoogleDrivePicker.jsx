@@ -74,7 +74,7 @@ const GoogleDrivePicker = forwardRef(({ onFileSelected, onReady }, ref) => {
       .setParent("root");
     
     const apiKey = process.env.REACT_APP_GOOGLE_API_KEY;
-    console.log("API Key present:", !!apiKey);
+    console.log(apiKey);
     
     if (!apiKey) {
       console.error("❌ REACT_APP_GOOGLE_API_KEY not found in environment");
