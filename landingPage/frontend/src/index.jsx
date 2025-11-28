@@ -9,9 +9,6 @@ const HomePage = () => {
   const [showLogout, setShowLogout] = useState(false);
   const [email, setEmail] = useState(null);
 
-  const isClickable = isSignedIn;
-
-
   // Get email from URL (for OAuth callback)
   // const urlEmail = new URLSearchParams(location.search).get("email");
 
