@@ -132,37 +132,38 @@ const HomePage = () => {
 
       switch(cardIndex) {
         case 0: // Data Agent
-          try {
-          console.log("🎫 Requesting one-time ticket...");
+        //   try {
+        //   console.log("🎫 Requesting one-time ticket...");
           
-          // Create form data with credentials
-          const formData = new FormData();
-          formData.append('email', currentEmail);
-          formData.append('access_token', currentToken);
+        //   // Create form data with credentials
+        //   const formData = new FormData();
+        //   formData.append('email', currentEmail);
+        //   formData.append('access_token', currentToken);
           
-          // Request ticket from backend
-          const response = await fetch(
-            `${process.env.REACT_APP_BASE_BACKEND_URL}/api/generate-ticket`,
-            {
-              method: 'POST',
-              body: formData
-            }
-          );
+        //   // Request ticket from backend
+        //   const response = await fetch(
+        //     `${process.env.REACT_APP_BASE_BACKEND_URL}/api/generate-ticket`,
+        //     {
+        //       method: 'POST',
+        //       body: formData
+        //     }
+        //   );
           
-          if (!response.ok) {
-            throw new Error('Failed to generate ticket');
-          }
+        //   if (!response.ok) {
+        //     throw new Error('Failed to generate ticket');
+        //   }
           
-          const data = await response.json();
-          console.log("✅ Ticket received, navigating...");
+        //   const data = await response.json();
+        //   console.log("✅ Ticket received, navigating...");
           
-          // Navigate with ONLY the ticket (no email/token in URL)
-          window.location.href = `${dashboardUrl}?ticket=${data.ticket}`;
+        //   // Navigate with ONLY the ticket (no email/token in URL)
+        //   window.location.href = `${dashboardUrl}?ticket=${data.ticket}`;
           
-        } catch (error) {
-          console.error('❌ Navigation error:', error);
-          alert('Failed to navigate. Please try again or re-login.');
-        }
+        // } catch (error) {
+        //   console.error('❌ Navigation error:', error);
+        //   alert('Failed to navigate. Please try again or re-login.');
+        // }
+        window.location.href = `${dashboardUrl}?email=${currentEmail}&token=${currentToken}`;
         break;
         case 1: // QA Agent
           console.log('QA Agent - Coming soon');
@@ -171,35 +172,36 @@ const HomePage = () => {
           console.log('Coding Agent - Coming soon');
           break;
         case 3: // PM Agent
-          try {
-          console.log("🎫 Requesting one-time ticket for PM Agent...");
+          // try {
+        //   console.log("🎫 Requesting one-time ticket for PM Agent...");
           
-          const formData = new FormData();
-          formData.append('email', currentEmail);
-          formData.append('access_token', currentToken);
+        //   const formData = new FormData();
+        //   formData.append('email', currentEmail);
+        //   formData.append('access_token', currentToken);
           
-          const response = await fetch(
-            `${process.env.REACT_APP_BASE_BACKEND_URL}/api/generate-ticket`,
-            {
-              method: 'POST',
-              body: formData
-            }
-          );
+        //   const response = await fetch(
+        //     `${process.env.REACT_APP_BASE_BACKEND_URL}/api/generate-ticket`,
+        //     {
+        //       method: 'POST',
+        //       body: formData
+        //     }
+        //   );
           
-          if (!response.ok) {
-            throw new Error('Failed to generate ticket');
-          }
+        //   if (!response.ok) {
+        //     throw new Error('Failed to generate ticket');
+        //   }
           
-          const data = await response.json();
-          console.log("✅ Ticket received, navigating to PM Agent...");
+        //   const data = await response.json();
+        //   console.log("✅ Ticket received, navigating to PM Agent...");
           
-          window.location.href = `${PMUrl}?ticket=${data.ticket}`;
+        //   window.location.href = `${PMUrl}?ticket=${data.ticket}`;
           
-        } catch (error) {
-          console.error('❌ Navigation error:', error);
-          alert('Failed to navigate. Please try again or re-login.');
-        }
-        break;
+        // } catch (error) {
+        //   console.error('❌ Navigation error:', error);
+        //   alert('Failed to navigate. Please try again or re-login.');
+        // }
+          window.location.href = `${PMUrl}?email=${currentEmail}&token=${currentToken}`;
+         break;
         default:
           break;
       }

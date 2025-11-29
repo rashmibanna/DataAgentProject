@@ -9,6 +9,7 @@ const ProfilingRules = () => {
   const searchParams = new URLSearchParams(location.search);
   
   const emailParam = searchParams.get('email');
+  const tokenParam = searchParams.get('access_token');
   const storedEmail = localStorage.getItem("user_email");
   const email = emailParam || storedEmail;
 

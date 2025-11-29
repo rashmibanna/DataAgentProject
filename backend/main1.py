@@ -71,35 +71,35 @@ app.add_middleware(
 )
 
 
-def create_session(email: str, access_token: str) -> str:
-    """Create a new session and return session token"""
-    session_token = secrets.token_urlsafe(32)
-    sessions[session_token] = {
-        "email": email,
-        "access_token": access_token,
-        "created_at": time.time()
-    }
-    logger.info(f"✅ Session created for {email}")
-    return session_token
+# def create_session(email: str, access_token: str) -> str:
+#     """Create a new session and return session token"""
+#     session_token = secrets.token_urlsafe(32)
+#     sessions[session_token] = {
+#         "email": email,
+#         "access_token": access_token,
+#         "created_at": time.time()
+#     }
+#     logger.info(f"✅ Session created for {email}")
+#     return session_token
 
-def get_session(session_token: Optional[str]) -> dict:
-    """Get session data from token"""
-    if not session_token or session_token not in sessions:
-        raise HTTPException(status_code=401, detail="Invalid or expired session")
+# def get_session(session_token: Optional[str]) -> dict:
+#     """Get session data from token"""
+#     if not session_token or session_token not in sessions:
+#         raise HTTPException(status_code=401, detail="Invalid or expired session")
     
-    session_data = sessions[session_token]
+#     session_data = sessions[session_token]
     
-    # Check if session expired
-    if time.time() - session_data["created_at"] > SESSION_MAX_AGE:
-        del sessions[session_token]
-        raise HTTPException(status_code=401, detail="Session expired")
+#     # Check if session expired
+#     if time.time() - session_data["created_at"] > SESSION_MAX_AGE:
+#         del sessions[session_token]
+#         raise HTTPException(status_code=401, detail="Session expired")
     
-    return session_data
+#     return session_data
 
 
-def get_current_session(session_token: Optional[str] = Cookie(None, alias=SESSION_COOKIE_NAME)):
-    """Dependency to get current session from cookie"""
-    return get_session(session_token)
+# def get_current_session(session_token: Optional[str] = Cookie(None, alias=SESSION_COOKIE_NAME)):
+#     """Dependency to get current session from cookie"""
+#     return get_session(session_token)
 
 
 
@@ -448,33 +448,33 @@ async def oauth2callback(request: Request):
         return RedirectResponse(f"{FRONTEND_URL}/?error=oauth_failed")
 
 
-@app.get("/api/verify-session")
-async def verify_session(session_data: dict = Depends(get_current_session)):
-    """
-    Verify if user session is valid
-    Used by Data Agent (port 3001) to check authentication
-    """
-    return {
-        "authenticated": True,
-        "email": session_data["email"],
-        "access_token": session_data["access_token"]
-    }
+# @app.get("/api/verify-session")
+# async def verify_session(session_data: dict = Depends(get_current_session)):
+#     """
+#     Verify if user session is valid
+#     Used by Data Agent (port 3001) to check authentication
+#     """
+#     return {
+#         "authenticated": True,
+#         "email": session_data["email"],
+#         "access_token": session_data["access_token"]
+#     }
 
 
-@app.get("/api/get_token")
-def get_token(session_data: dict = Depends(get_current_session)):
-    """Get access token and Google API key for authenticated user (using session cookie)"""
-    try:
-        email = session_data["email"]
-        if email in USER_STORE and "credentials" in USER_STORE[email]:
-            creds = USER_STORE[email]["credentials"]
-        return {
-            "access_token": creds.token,
-            "email": email,
-            "google_api_key": GOOGLE_API_KEY
-        }
-    except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Not authenticated: {e}")
+# @app.get("/api/get_token")
+# def get_token(session_data: dict = Depends(get_current_session)):
+#     """Get access token and Google API key for authenticated user (using session cookie)"""
+#     try:
+#         email = session_data["email"]
+#         if email in USER_STORE and "credentials" in USER_STORE[email]:
+#             creds = USER_STORE[email]["credentials"]
+#         return {
+#             "access_token": creds.token,
+#             "email": email,
+#             "google_api_key": GOOGLE_API_KEY
+#         }
+#     except Exception as e:
+#         raise HTTPException(status_code=401, detail=f"Not authenticated: {e}")
 
 
 @app.post("/api/logout")
@@ -502,90 +502,90 @@ async def logout(
 # Google Drive API Routes
 # ----------------------------
 
-# Add this at the top with other imports if not already there
-import secrets
+# # Add this at the top with other imports if not already there
+# import secrets
 
-# One-time ticket store (use Redis in production)
-ticket_store = {}
+# # One-time ticket store (use Redis in production)
+# ticket_store = {}
 
-# Clean up expired tickets periodically
-def cleanup_expired_tickets():
-    """Remove expired tickets from store"""
-    current_time = time.time()
-    expired = [token for token, data in ticket_store.items() 
-               if current_time > data["expires_at"]]
-    for token in expired:
-        del ticket_store[token]
-    if expired:
-        logger.info(f"🧹 Cleaned up {len(expired)} expired tickets")
+# # Clean up expired tickets periodically
+# def cleanup_expired_tickets():
+#     """Remove expired tickets from store"""
+#     current_time = time.time()
+#     expired = [token for token, data in ticket_store.items() 
+#                if current_time > data["expires_at"]]
+#     for token in expired:
+#         del ticket_store[token]
+#     if expired:
+#         logger.info(f"🧹 Cleaned up {len(expired)} expired tickets")
 
-@app.post("/api/generate-ticket")
-async def generate_ticket(email: str = Form(...), access_token: str = Form(...)):
-    """Generate one-time ticket for cross-app navigation"""
+# @app.post("/api/generate-ticket")
+# async def generate_ticket(email: str = Form(...), access_token: str = Form(...)):
+#     """Generate one-time ticket for cross-app navigation"""
     
-    # Verify user exists in store
-    if email not in USER_STORE or "credentials" not in USER_STORE[email]:
-        raise HTTPException(status_code=401, detail="User not authenticated")
+#     # Verify user exists in store
+#     if email not in USER_STORE or "credentials" not in USER_STORE[email]:
+#         raise HTTPException(status_code=401, detail="User not authenticated")
     
-    # Verify token matches (basic validation)
-    stored_creds = USER_STORE[email]["credentials"]
-    if stored_creds.token != access_token:
-        raise HTTPException(status_code=401, detail="Invalid access token")
+#     # Verify token matches (basic validation)
+#     stored_creds = USER_STORE[email]["credentials"]
+#     if stored_creds.token != access_token:
+#         raise HTTPException(status_code=401, detail="Invalid access token")
     
-    # Clean up old tickets
-    cleanup_expired_tickets()
+#     # Clean up old tickets
+#     cleanup_expired_tickets()
     
-    # Generate secure random ticket
-    ticket_token = secrets.token_urlsafe(32)
+#     # Generate secure random ticket
+#     ticket_token = secrets.token_urlsafe(32)
     
-    # Store credentials temporarily (5 minutes)
-    ticket_store[ticket_token] = {
-        "email": email,
-        "access_token": access_token,
-        "created_at": time.time(),
-        "expires_at": time.time() + 300,  # 5 minutes expiry
-        "used": False
-    }
+#     # Store credentials temporarily (5 minutes)
+#     ticket_store[ticket_token] = {
+#         "email": email,
+#         "access_token": access_token,
+#         "created_at": time.time(),
+#         "expires_at": time.time() + 300,  # 5 minutes expiry
+#         "used": False
+#     }
     
-    logger.info(f"✅ Ticket generated for {email} (expires in 5 min)")
+#     logger.info(f"✅ Ticket generated for {email} (expires in 5 min)")
     
-    return {
-        "ticket": ticket_token,
-        "expires_in": 300
-    }
+#     return {
+#         "ticket": ticket_token,
+#         "expires_in": 300
+#     }
 
 
-@app.post("/api/validate-ticket")
-async def validate_ticket(ticket: str = Form(...)):
-    """Validate and consume one-time ticket"""
+# @app.post("/api/validate-ticket")
+# async def validate_ticket(ticket: str = Form(...)):
+#     """Validate and consume one-time ticket"""
     
-    # Check if ticket exists
-    if ticket not in ticket_store:
-        raise HTTPException(status_code=401, detail="Invalid or expired ticket")
+#     # Check if ticket exists
+#     if ticket not in ticket_store:
+#         raise HTTPException(status_code=401, detail="Invalid or expired ticket")
     
-    ticket_data = ticket_store[ticket]
+#     ticket_data = ticket_store[ticket]
     
-    # Check if already used
-    if ticket_data["used"]:
-        del ticket_store[ticket]
-        raise HTTPException(status_code=401, detail="Ticket already used")
+#     # Check if already used
+#     if ticket_data["used"]:
+#         del ticket_store[ticket]
+#         raise HTTPException(status_code=401, detail="Ticket already used")
     
-    # Check if expired
-    if time.time() > ticket_data["expires_at"]:
-        del ticket_store[ticket]
-        raise HTTPException(status_code=401, detail="Ticket expired")
+#     # Check if expired
+#     if time.time() > ticket_data["expires_at"]:
+#         del ticket_store[ticket]
+#         raise HTTPException(status_code=401, detail="Ticket expired")
     
-    # Delete ticket immediately (single-use)
-    email = ticket_data["email"]
-    access_token = ticket_data["access_token"]
-    del ticket_store[ticket]
+#     # Delete ticket immediately (single-use)
+#     email = ticket_data["email"]
+#     access_token = ticket_data["access_token"]
+#     del ticket_store[ticket]
     
-    logger.info(f"✅ Ticket validated and consumed for {email}")
+#     logger.info(f"✅ Ticket validated and consumed for {email}")
     
-    return {
-        "email": email,
-        "access_token": access_token
-    }
+#     return {
+#         "email": email,
+#         "access_token": access_token
+#     }
 
 
 @app.get("/api/drive/search")
