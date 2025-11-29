@@ -60,6 +60,7 @@ const Dashboard = () => {
         // Update UI
         setEmail(urlEmail);
         setToken(urlToken);
+        setIsLoading(false);
         // Clean the URL (Remove token/email so it looks clean)
         window.history.replaceState({}, document.title, window.location.pathname);
       } 
@@ -69,12 +70,14 @@ const Dashboard = () => {
         console.log("♻️ Session restored from LocalStorage");
         setEmail(storedEmail);
         setToken(storedToken);
+        setIsLoading(false);
       }
       
       // SCENARIO C: No data found
       else {
         console.log("❌ No session found. User is Guest.");
         setEmail(null);
+        setIsLoading(false);
       }
     }, []);
 
