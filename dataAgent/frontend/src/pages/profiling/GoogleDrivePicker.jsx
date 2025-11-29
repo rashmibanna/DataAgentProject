@@ -16,7 +16,42 @@ const GoogleDrivePicker = forwardRef(({ onFileSelected, onReady }, ref) => {
       console.error("Google access token missing! Please log in again.");
       return;
     }
-
+     if (googleAccessToken) {
+    // 🔍 Check what scopes this token has
+    fetch(`https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${googleAccessToken}`)
+      .then(res => res.json())
+      .then(data => {
+        console.log("🔍 Token Info:", data);
+        console.log("📋 Token Scopes:", data.scope);
+        console.log("⏰ Expires in:", data.expires_in, "seconds");
+        
+        // Check if it has drive scope
+        const hasPickerScope = data.scope && (
+          data.scope.includes('drive') || 
+          data.scope.includes('drive.file')
+        );
+        
+        if (!hasPickerScope) {
+          console.error("❌ Token missing 'drive' or 'drive.file' scope!");
+          console.error("❌ Current scopes:", data.scope);
+          alert("Your session doesn't have Drive access. Please logout and login again.");
+        } else {
+          console.log("✅ Token has required Drive scopes");
+        }
+        
+        // Check if token expired
+        if (data.expires_in < 0) {
+          console.error("❌ Token has EXPIRED!");
+          alert("Your session has expired. Please login again.");
+          localStorage.clear();
+          window.location.href = '/';
+        }
+      })
+      .catch(err => {
+        console.error("❌ Token validation failed:", err);
+      });
+  }
+  
     const script = document.createElement("script");
     script.src = "https://apis.google.com/js/api.js";
     script.onload = () => {
@@ -84,7 +119,7 @@ const GoogleDrivePicker = forwardRef(({ onFileSelected, onReady }, ref) => {
     const picker = new window.google.picker.PickerBuilder()
       .addView(docsView)
       .setOAuthToken(googleAccessToken)
-      .setAppId(${process.env.REACT_APP_CLIENT_NEW_ID})
+      
       .setDeveloperKey(apiKey)
       .setCallback(pickerCallback)
       .build();

@@ -114,6 +114,8 @@ else:
 SCOPES = [
     "openid", "email", "profile",
     "https://www.googleapis.com/auth/drive",
+    "https://www.googleapis.com/auth/drive.file",               # ✅ ADD THIS
+    "https://www.googleapis.com/auth/drive.readonly",
     "https://www.googleapis.com/auth/drive.metadata.readonly"
 ]
 
