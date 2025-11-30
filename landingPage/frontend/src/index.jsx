@@ -59,7 +59,6 @@ const HomePage = () => {
 
     const logoutAction = queryParams.get("action"); // ✅ NEW
    
-    const userEmail = storedEmail;
 
   // ✅ HANDLE LOGOUT FIRST
   if (logoutAction === "logout") {

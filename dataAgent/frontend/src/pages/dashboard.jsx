@@ -130,7 +130,7 @@ const Dashboard = () => {
         zIndex: 10
       }}>
         <button
-          onClick={() => window.location.href = `/dashboard?email=${email}`}
+          onClick={() => window.location.href = `${process.env.REACT_APP_BASE_FRONTEND_URL}`}
           style={{
             background: 'linear-gradient(135deg, #1453c6, #2a6ce8)',
             color: 'white',

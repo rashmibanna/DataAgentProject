@@ -37,8 +37,14 @@ export default function Preview() {
     }, 800);
   };
 
- 
-
+ const handleLogout = async () => {
+    // 1. Clear Local Storage (Crucial)
+    localStorage.removeItem("user_email");
+    localStorage.removeItem("google_access_token");
+    
+    // 3. Redirect to Landing Page
+    window.location.href = `${process.env.REACT_APP_BASE_FRONTEND_URL}?action=logout`;
+  };
 
   return (
     <>
@@ -85,13 +91,7 @@ export default function Preview() {
 
         {/* Logout */}
         <button
-          onClick={() => {
-            if (window.confirm("Are you sure you want to logout?")) {
-              localStorage.removeItem("user_email");
-        localStorage.removeItem("google_access_token");
-              window.location.href = "/";
-            }
-          }}
+          onClick={{handleLogout}}
           style={{
             background: "#dc3545",
             color: "white",

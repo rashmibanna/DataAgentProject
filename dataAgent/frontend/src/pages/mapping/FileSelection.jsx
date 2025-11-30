@@ -193,6 +193,16 @@ const mappingResult = await startMapping(
     }
     };
 
+    const handleLogout = async () => {
+    // 1. Clear Local Storage (Crucial)
+    localStorage.removeItem("user_email");
+    localStorage.removeItem("google_access_token");
+    
+    // 3. Redirect to Landing Page
+    window.location.href = `${process.env.REACT_APP_BASE_FRONTEND_URL}?action=logout`;
+  };
+
+
     const isReadyToContinue = sourceFile !== null && targetFile !== null;
 
     // Add this inside the FileSelection component, before handleContinue
@@ -286,11 +296,7 @@ const startMapping = async (hostFilePath, targetFilePath, userEmail) => {
                 }}
             >
                 <button
-                    onClick={() => {
-                        if (window.confirm("Are you sure you want to logout?")) {
-                            window.location.href = "/";
-                        }
-                    }}
+                    onClick={{handleLogout}}
                     style={{
                         background: "#dc3545",
                         color: "white",
@@ -642,7 +648,7 @@ const startMapping = async (hostFilePath, targetFilePath, userEmail) => {
                     }}
                 >
                     <a
-                        href="/"
+                        href={`/mapping/optionsMapping?email=${email}`}
                         style={{
                             color: "#1453c6",
                             textDecoration: "none",
@@ -652,7 +658,7 @@ const startMapping = async (hostFilePath, targetFilePath, userEmail) => {
 
                         }}
                     >
-                        <i className="fas fa-arrow-left"></i> Back to home
+                        <i className="fas fa-arrow-left"></i> Back to Options
                     </a>
                 </div>
                 {/* Removed GoogleDrivePicker component */}

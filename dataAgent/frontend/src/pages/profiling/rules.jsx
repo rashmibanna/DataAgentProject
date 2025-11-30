@@ -199,6 +199,15 @@ const ProfilingRules = () => {
       }
     }
   };
+  
+  const handleLogout = async () => {
+    // 1. Clear Local Storage (Crucial)
+    localStorage.removeItem("user_email");
+    localStorage.removeItem("google_access_token");
+    
+    // 3. Redirect to Landing Page
+    window.location.href = `${process.env.REACT_APP_BASE_FRONTEND_URL}?action=logout`;
+  };
 
   return (
     <div className="rules-body">
@@ -220,13 +229,7 @@ const ProfilingRules = () => {
               </button>
               <button
                 className="btn"
-                onClick={() => {
-                  if (window.confirm('Are you sure you want to logout?')) {
-                    localStorage.removeItem("user_email");
-                    localStorage.removeItem("google_access_token");
-                    navigate('/');
-                  }
-                }}
+                onClick={{handleLogout}}
                 style={{ 
                   whiteSpace: 'nowrap',
                   background: '#dc3545',
