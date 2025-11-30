@@ -203,7 +203,10 @@ const DriveSelection = () => {
                 }}
             >
                 <button
-                    onClick={{handleLogout}}
+                    onClick={() => {
+            if (window.confirm('Are you sure you want to logout?')) {
+               handleLogout();
+            }}}
                     style={{
                         background: "#dc3545",
                         color: "white",

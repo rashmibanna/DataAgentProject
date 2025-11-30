@@ -229,7 +229,10 @@ const ProfilingRules = () => {
               </button>
               <button
                 className="btn"
-                onClick={{handleLogout}}
+                onClick={() => {
+            if (window.confirm('Are you sure you want to logout?')) {
+               handleLogout();
+            }}}
                 style={{ 
                   whiteSpace: 'nowrap',
                   background: '#dc3545',
