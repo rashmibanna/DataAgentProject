@@ -57,6 +57,40 @@ const HomePage = () => {
     const storedToken = localStorage.getItem("google_access_token");
     const storedEmail = localStorage.getItem("user_email");
 
+    const logoutAction = queryParams.get("action"); // ✅ NEW
+   
+    const userEmail = storedEmail;
+
+  // ✅ HANDLE LOGOUT FIRST
+  if (logoutAction === "logout") {
+    const userEmail = storedEmail;
+    console.log("🚪 Logout detected from Dashboard - clearing HomePage localStorage...");
+    localStorage.removeItem("user_email");
+    localStorage.removeItem("google_access_token");
+    setIsSignedIn(false);
+    setEmail(null);
+    
+    // Notify backend (optional - fire and forget)
+  if (userEmail) {
+    try {
+      const formData = new FormData();
+      formData.append('email', userEmail);
+      
+      fetch(`${process.env.REACT_APP_BASE_BACKEND_URL}/api/logout`, {
+        method: 'POST',
+        body: formData
+      }).catch(err => console.log('Backend logout failed (non-critical):', err));
+      
+      console.log('✅ Backend notified of logout');
+    } catch (error) {
+      console.log('Backend logout error (non-critical):', error);
+    }
+  }
+    // Clean URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+    return; // ✅ Stop execution here
+  }
+
     // SCENARIO A: User just arrived from Login (Data is in URL)
     if (urlToken && urlEmail) {
       console.log("📥 New login detected from URL. Saving session...");
@@ -97,25 +131,33 @@ const HomePage = () => {
   };
 
   const handleLogout = async () => {
-    // try {
-    //   // Call backend logout to clear session cookie
-    //   await fetch(`${process.env.REACT_APP_BASE_BACKEND_URL}/api/logout`, {
-    //     method: 'POST',
-    //     credentials: 'include'
-    //   });
-    //   console.log('✅ Logged out from backend');
-    // } catch (error) {
-    //   console.error('Logout error:', error);
-    // }
     
-    // Clear frontend storage
+   console.log("🚪 Logout detected from Dashboard - clearing HomePage localStorage...");
     localStorage.removeItem("user_email");
     localStorage.removeItem("google_access_token");
     setIsSignedIn(false);
     setEmail(null);
-    setShowLogout(false);
-    navigate('/');
-    console.log('✅ Logged out successfully');
+    
+    const userEmail = localStorage.getItem("user_email");
+    // Notify backend (optional - fire and forget)
+  if (userEmail) {
+    try {
+      const formData = new FormData();
+      formData.append('email', userEmail);
+      
+      fetch(`${process.env.REACT_APP_BASE_BACKEND_URL}/api/logout`, {
+        method: 'POST',
+        body: formData
+      }).catch(err => console.log('Backend logout failed (non-critical):', err));
+      
+      console.log('✅ Backend notified of logout');
+    } catch (error) {
+      console.log('Backend logout error (non-critical):', error);
+    }
+  }
+    // Clean URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+    return; // ✅ Stop execution here
   };
 
   const handleCardClick = async (cardIndex) => {

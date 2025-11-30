@@ -85,20 +85,6 @@ const Dashboard = () => {
     // 1. Clear Local Storage (Crucial)
     localStorage.removeItem("user_email");
     localStorage.removeItem("google_access_token");
-
-    // 2. Optional: Notify Backend (Fire and forget)
-    try {
-      if (token) {
-        await fetch(`${process.env.REACT_APP_BASE_BACKEND_URL}/api/logout`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-      }
-    } catch (error) {
-      console.error('Backend logout failed, but frontend session cleared.');
-    }
     
     // 3. Redirect to Landing Page
     window.location.href = `${process.env.REACT_APP_BASE_FRONTEND_URL}?action=logout`;
@@ -175,7 +161,7 @@ const Dashboard = () => {
         <button
           onClick={() => {
             if (window.confirm('Are you sure you want to logout?')) {
-              window.location.href = '/';
+               handleLogout();
             }
           }}
           style={{ 

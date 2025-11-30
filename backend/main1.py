@@ -478,26 +478,22 @@ async def oauth2callback(request: Request):
 
 
 @app.post("/api/logout")
-async def logout(
-    response: Response,
-    session_token: Optional[str] = Cookie(None, alias=SESSION_COOKIE_NAME)
-):
-    """Logout user and clear session"""
-    if session_token and session_token in sessions:
-        email = sessions[session_token].get("email", "unknown")
-        del sessions[session_token]
-        logger.info(f"✅ User {email} logged out")
-    
-    # Clear cookie
-    response.delete_cookie(
-        key=SESSION_COOKIE_NAME,
-        path="/",
-        domain="none",
-        samesite="none",
-        secure=True
-    )
-    
-    return {"message": "Logged out successfully"}
+async def logout(email: str = Form(...)):
+    """Simple logout - clear user data from memory"""
+    try:
+        if email in USER_STORE:
+            # Clear user credentials from memory
+            USER_STORE[email].pop("credentials", None)
+            USER_STORE[email].pop("dataframe", None)
+            USER_STORE[email].pop("filename", None)
+            logger.info(f"✅ User {email} logged out and data cleared from memory")
+            return {"message": "Logged out successfully", "email": email}
+        else:
+            logger.warning(f"⚠️ Logout attempt for non-existent user: {email}")
+            return {"message": "User not found in session", "email": email}
+    except Exception as e:
+        logger.error(f"❌ Logout error for {email}: {e}")
+        raise HTTPException(status_code=500, detail=f"Logout failed: {str(e)}")
 # ----------------------------
 # Google Drive API Routes
 # ----------------------------
