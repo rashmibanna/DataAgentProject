@@ -778,6 +778,7 @@ async def smart_mapping_with_files(
             with open(host_file_id, 'r') as f:
                 host_fields = json.load(f)
             host_file = {"id": host_file_id, "name": os.path.basename(host_file_id)}
+            print("source in smart_mapping :- ",host_file)
             
         # 3. Assume Google Drive
         else:
@@ -808,6 +809,7 @@ async def smart_mapping_with_files(
             with open(target_file_id, 'r') as f:
                 target_fields = json.load(f)
             target_file = {"id": target_file_id, "name": os.path.basename(target_file_id)}
+            print("target in smart mapping :-" , target_file)
             
         # 3. Google Drive
         else:
