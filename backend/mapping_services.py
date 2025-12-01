@@ -821,7 +821,7 @@ async def smart_mapping_with_files(
         if is_session_token(host_file_id):
             logger.info("✅ Host file: IN-MEMORY SESSION")
             host_fields = get_data_from_memory(host_file_id,file_type="source")
-            print("source in smart_mapping :- ",host_fields,file_type="target")
+            print(f"source in smart_mapping :- {host_fields} | Type: Source")
             if host_fields is None:
                  raise HTTPException(status_code=404, detail="Host file session expired or not found. Please re-upload.")
             
@@ -854,7 +854,7 @@ async def smart_mapping_with_files(
         if is_session_token(target_file_id):
             logger.info("✅ Target file: IN-MEMORY SESSION")
             target_fields = get_data_from_memory(target_file_id)
-            print("target in smart mapping :-" , target_fields)
+            print(f"source in smart_mapping :- {host_fields} | Type: target")
             if target_fields is None:
                  raise HTTPException(status_code=404, detail="Target file session expired. Please re-upload.")
             
