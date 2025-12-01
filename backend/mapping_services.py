@@ -454,6 +454,11 @@ def build_mapping_prompt(host_fields: Any, target_fields: Any, host_system: str,
     # src_str = json.dumps(host_fields, indent=2, ensure_ascii=False)
     # tgt_str = json.dumps(target_fields, indent=2, ensure_ascii=False)
 
+    print("=====================================================================")
+    print(src_str)
+    print("========================================================================")
+    print(tgt_str)
+
     return f"""
 You are an expert **Data Integration and Schema Mapping Architect** specializing in enterprise data systems (ERP, CRM, Billing, HRMS, etc.).
 You must deeply analyze and map fields between two system payloads.
