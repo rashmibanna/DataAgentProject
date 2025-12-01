@@ -428,9 +428,31 @@ def hybrid_smart_map(
 
 def build_mapping_prompt(host_fields: Any, target_fields: Any, host_system: str, target_system: str) -> str:
     """Build the enhanced LLM prompt for field mapping"""
-    
-    src_str = json.dumps(host_fields, indent=2, ensure_ascii=False)
-    tgt_str = json.dumps(target_fields, indent=2, ensure_ascii=False)
+    def standardize_to_single_json(data):
+        # Case 1: Idi List ayithe (Local File)
+        if isinstance(data, list):
+            if len(data) > 0:
+                # List ni "Single Dictionary" ga convert chestunnam
+                # Key: "schema_sample", Value: First Row
+                return {"file_schema_sample": data[0]}
+            else:
+                return {} # Empty Dict
+        
+        # Case 2: Idi already Dictionary ayithe (Drive File)
+        # Direct ga return chestunnam
+        return data
+
+    # --- APPLY LOGIC ---
+    # Ippudu host_data mariyu target_data RENDU kooda Single JSON Objects eh!
+    # No more lists.
+    host_final = standardize_to_single_json(host_fields)
+    target_final = standardize_to_single_json(target_fields)
+
+    # --- CONVERT TO STRING ---
+    src_str = json.dumps(host_final, indent=2, ensure_ascii=False)
+    tgt_str = json.dumps(target_final, indent=2, ensure_ascii=False)
+    # src_str = json.dumps(host_fields, indent=2, ensure_ascii=False)
+    # tgt_str = json.dumps(target_fields, indent=2, ensure_ascii=False)
 
     return f"""
 You are an expert **Data Integration and Schema Mapping Architect** specializing in enterprise data systems (ERP, CRM, Billing, HRMS, etc.).
