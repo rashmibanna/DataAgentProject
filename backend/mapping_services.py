@@ -127,19 +127,27 @@ def is_session_token(token: str) -> bool:
     except Exception:
         return False
 
-def get_data_from_memory(token: str) -> Any:
+def get_data_from_memory(token: str, file_type: Optional[str] = None) -> Any:
     """
-    ✅ Decodes token and retrieves DataFrame from the Shared USER_STORE.
+    ✅ Retrieves DataFrame from USER_STORE based on token and file_type
+    
+    Args:
+        token: Session token containing email||filename||timestamp
+        file_type: "source" or "target" for mapping files
+    
+    Returns:
+        List of dicts (JSON-ready data) or None
     """
     try:
         decoded = base64.urlsafe_b64decode(token).decode("utf-8")
         parts = decoded.split("||")
         if len(parts) < 3:
+            logger.error("❌ Invalid token format")
             return None
             
         email, filename, timestamp = parts[0], parts[1], parts[2]
         
-        logger.info(f"🔍 Looking up memory data for: {email} | File: {filename}")
+        logger.info(f"🔍 Looking up memory data for: {email} | File: {filename} | Type: {file_type}")
 
         if email not in USER_STORE:
             logger.error(f"❌ User {email} not found in USER_STORE.")
@@ -147,23 +155,66 @@ def get_data_from_memory(token: str) -> Any:
             
         user_data = USER_STORE[email]
 
-        # if "raw_json" in user_data:
-        #     logger.info(f"✅ Returning RAW JSON for {filename}")
-        #     return user_data["raw_json"]
+        # ✅ Priority 1: Check mapping_files if file_type provided
+        if file_type and "mapping_files" in user_data:
+            if file_type in user_data["mapping_files"]:
+                df = user_data["mapping_files"][file_type]["dataframe"]
+                logger.info(f"✅ Found mapping {file_type} file: {user_data['mapping_files'][file_type]['filename']}")
+                return df.to_dict(orient="records")
+            else:
+                logger.error(f"❌ Mapping {file_type} file not found")
+                return None
         
+        # ✅ Priority 2: Fallback to regular dataframe (for profiling)
         if "dataframe" not in user_data:
             logger.error("❌ No dataframe found in user session.")
             return None
 
         df = user_data["dataframe"]
-        # Convert to list of dicts for JSON processing
-        print(df)
-        print(df.to_dict(orient="records"))
+        logger.info(f"✅ Found profiling dataframe: {filename}")
         return df.to_dict(orient="records")
-
+        
     except Exception as e:
-        logger.error(f"❌ Failed to retrieve data from token: {e}")
+        logger.exception(f"❌ Error in get_data_from_memory: {e}")
         return None
+    
+# def get_data_from_memory(token: str) -> Any:
+#     """
+#     ✅ Decodes token and retrieves DataFrame from the Shared USER_STORE.
+#     """
+#     try:
+#         decoded = base64.urlsafe_b64decode(token).decode("utf-8")
+#         parts = decoded.split("||")
+#         if len(parts) < 3:
+#             return None
+            
+#         email, filename, timestamp = parts[0], parts[1], parts[2]
+        
+#         logger.info(f"🔍 Looking up memory data for: {email} | File: {filename}")
+
+#         if email not in USER_STORE:
+#             logger.error(f"❌ User {email} not found in USER_STORE.")
+#             return None
+            
+#         user_data = USER_STORE[email]
+
+#         # if "raw_json" in user_data:
+#         #     logger.info(f"✅ Returning RAW JSON for {filename}")
+#         #     return user_data["raw_json"]
+        
+#         if "dataframe" not in user_data:
+#             logger.error("❌ No dataframe found in user session.")
+#             return None
+
+#         df = user_data["dataframe"]
+#         # Convert to list of dicts for JSON processing
+#         print(df)
+#         print(df.to_dict(orient="records"))
+#         return df.to_dict(orient="records")
+
+#     except Exception as e:
+#         logger.error(f"❌ Failed to retrieve data from token: {e}")
+#         return None
 
 
 # ==================== SIMILARITY UTILITIES ====================
@@ -769,8 +820,8 @@ async def smart_mapping_with_files(
         # 1. Check if it's an In-Memory Token
         if is_session_token(host_file_id):
             logger.info("✅ Host file: IN-MEMORY SESSION")
-            host_fields = get_data_from_memory(host_file_id)
-            print("source in smart_mapping :- ",host_fields)
+            host_fields = get_data_from_memory(host_file_id,file_type="source")
+            print("source in smart_mapping :- ",host_fields,file_type="target")
             if host_fields is None:
                  raise HTTPException(status_code=404, detail="Host file session expired or not found. Please re-upload.")
             

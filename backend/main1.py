@@ -760,6 +760,92 @@ def make_session_token(email: str, filename: str) -> str:
     token = base64.urlsafe_b64encode(raw.encode("utf-8")).decode("utf-8")
     return token
 
+# ----------------------------
+# Mapping-Specific File Upload Route
+# ----------------------------
+
+@app.post("/api/mapping_upload_local")
+async def api_mapping_upload_local(
+    email: str = Form(...), 
+    file: UploadFile = File(...),
+    file_type: str = Form(...)  # "source" or "target"
+):
+    """
+    ✅ Upload files specifically for Mapping Service
+    Stores source and target files separately without overwriting
+    """
+    if email not in USER_STORE:
+        USER_STORE[email] = {}
+    
+    # ✅ Initialize mapping_files structure if not exists
+    if "mapping_files" not in USER_STORE[email]:
+        USER_STORE[email]["mapping_files"] = {}
+    
+    contents = await file.read()
+    filename = file.filename
+    filename_lower = filename.lower()
+
+    try:
+        # Parse file based on extension
+        if filename_lower.endswith(".csv"):
+            try:
+                df = pd.read_csv(io.BytesIO(contents), sep=None, engine="python", dtype=str)
+            except Exception:
+                try:
+                    df = pd.read_csv(io.BytesIO(contents), dtype=str)
+                except Exception:
+                    df = pd.read_excel(io.BytesIO(contents))
+
+        elif filename_lower.endswith(".json"):
+            import json
+            json_data = json.load(io.BytesIO(contents))
+            
+            if isinstance(json_data, dict):
+                df = pd.DataFrame([json_data])
+            else:
+                df = pd.DataFrame(json_data)
+
+        elif filename_lower.endswith((".xls", ".xlsx", ".xlsm")):
+            df = pd.read_excel(io.BytesIO(contents))
+
+        else:
+            raise Exception(f"Unsupported file format: {pathlib.Path(filename).suffix}")
+
+    except Exception as e:
+        logger.exception(f"Failed to parse mapping file: {e}")
+        raise HTTPException(status_code=400, detail=f"Failed to read file: {e}")
+
+    # Cast numeric columns
+    df = detect_and_cast_numeric(df)
+
+    # ✅ Store in mapping-specific structure with file_type key
+    USER_STORE[email]["mapping_files"][file_type] = {
+        "dataframe": df,
+        "filename": filename,
+        "uploaded_at": datetime.utcnow().isoformat(),
+        "file_id": None  # Will be set if uploaded from Drive
+    }
+
+    logger.info(f"✅ Mapping {file_type} file uploaded: {filename} for {email}")
+    logger.info(f"📊 Shape: {df.shape}, Columns: {list(df.columns)}")
+    
+    # Create session token
+    session_token = make_session_token(email, filename)
+    
+    # Generate preview
+    preview = df.head(5).replace({
+        float("inf"): None, 
+        float("-inf"): None
+    }).fillna("").to_dict(orient="records")
+    
+    return {
+        "name": filename,
+        "preview": preview,
+        "local_path": session_token,
+        "file_type": file_type,
+        "columns": list(df.columns),
+        "row_count": len(df)
+    }
 
 @app.post("/api/upload_local")
 async def api_upload_local(email: str = Form(...), file: UploadFile = File(...)):
@@ -821,7 +907,7 @@ async def api_upload_local(email: str = Form(...), file: UploadFile = File(...))
     print(df)
     print("=================================================================")
     print(pathlib.Path(file.filename).name)
-    
+
     # create a session token for templates
     session_token = make_session_token(email, USER_STORE[email]["filename"])
     USER_STORE[email]["last_session_token"] = session_token

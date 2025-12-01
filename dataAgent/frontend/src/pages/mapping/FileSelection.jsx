@@ -145,11 +145,11 @@ const FileSelection = () => {
     
     try {
         // 1. Upload Source File
-        const sourceUpload = await uploadFile(sourceFile);
+        const sourceUpload = await uploadFile(sourceFile , "source");
         showLoader("Source file uploaded. Uploading Target file...");
         
         // 2. Upload Target File
-        const targetUpload = await uploadFile(targetFile);
+        const targetUpload = await uploadFile(targetFile , "target");
         showLoader("Starting Smart Mapping (May take 30-60 seconds)...");
 
         // 3. Run Mapping on the backend
@@ -210,7 +210,7 @@ const mappingResult = await startMapping(
 const BACKEND_URL = `${process.env.REACT_APP_BASE_BACKEND_URL}/api/mapping`;
 
 // Helper to upload a single file
-const uploadFile = async (file) => {
+const uploadFile = async (file , fileType) => {
     const userEmail = email; // Use the email derived from the URL
     const accessToken = token || localStorage.getItem('google_access_token');
     if (!accessToken) {
@@ -219,9 +219,10 @@ const uploadFile = async (file) => {
     const formData = new FormData();
     formData.append('email', userEmail);
     formData.append('file', file);
+    formData.append('file_type', fileType);
     
     // Calls the /api/upload_local route
-    const response = await fetch(`${process.env.REACT_APP_BASE_BACKEND_URL}/api/upload_local`, {
+    const response = await fetch(`${process.env.REACT_APP_BASE_BACKEND_URL}/api/mapping_upload_local`, {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${accessToken}`  // ✅ CRITICAL: Send token here
