@@ -154,6 +154,7 @@ def get_data_from_memory(token: str, file_type: Optional[str] = None) -> Any:
             return None
             
         user_data = USER_STORE[email]
+        print(user_data)
 
         # ✅ Priority 1: Check mapping_files if file_type provided
         if file_type and "mapping_files" in user_data:
