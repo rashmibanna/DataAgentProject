@@ -814,11 +814,18 @@ async def api_upload_local(email: str = Form(...), file: UploadFile = File(...))
     df = detect_and_cast_numeric(df)
 
     USER_STORE[email]["dataframe"] = df
+
     USER_STORE[email]["filename"] = pathlib.Path(file.filename).name
+
+    print("============================================================")
+    print(df)
+    print("=================================================================")
+    print(pathlib.Path(file.filename).name)
+    
     # create a session token for templates
     session_token = make_session_token(email, USER_STORE[email]["filename"])
     USER_STORE[email]["last_session_token"] = session_token
-
+    
     preview = df.head(5).replace({float("inf"): None, float("-inf"): None}).fillna("").to_dict(orient="records")
     return {"name": USER_STORE[email]["filename"], "preview": preview, "local_path": session_token}
 
