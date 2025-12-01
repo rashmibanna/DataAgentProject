@@ -147,9 +147,9 @@ def get_data_from_memory(token: str) -> Any:
             
         user_data = USER_STORE[email]
 
-        if "raw_json" in user_data:
-            logger.info(f"✅ Returning RAW JSON for {filename}")
-            return user_data["raw_json"]
+        # if "raw_json" in user_data:
+        #     logger.info(f"✅ Returning RAW JSON for {filename}")
+        #     return user_data["raw_json"]
         
         if "dataframe" not in user_data:
             logger.error("❌ No dataframe found in user session.")
@@ -157,6 +157,8 @@ def get_data_from_memory(token: str) -> Any:
 
         df = user_data["dataframe"]
         # Convert to list of dicts for JSON processing
+        print(df)
+        print(df.to_dict(orient="records"))
         return df.to_dict(orient="records")
 
     except Exception as e:
@@ -754,7 +756,14 @@ async def smart_mapping_with_files(
             )
         
         logger.info(f"📥 Starting mapping for user: {email}")
-        logger.info(f"📥 Inputs: Host={host_file_id}, Target={target_file_id}")
+        print("DEBUG CHECK ---> Host ID:", host_file_id)
+        print("DEBUG CHECK ---> Target ID:", target_file_id)
+
+        # Check if strings are identical
+        if host_file_id == target_file_id:
+             print("❌ ERROR: two host_file and target_files are same")
+        else:
+              print("✅ OK: Tokens different ga unnayi.")
         
         # ==================== HANDLE HOST FILE ====================
         # 1. Check if it's an In-Memory Token
