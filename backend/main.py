@@ -224,6 +224,7 @@ async def api_upload_local(email: str = Form(...), file: UploadFile = File(...))
                 df = pd.read_csv(io.BytesIO(contents), dtype=str)
         elif filename_lower.endswith(".json"):
              json_data = json.load(io.BytesIO(contents))
+             USER_STORE[email]["raw_json"] = json_data
              if isinstance(json_data, dict):
                  df = pd.DataFrame([json_data])
              else:

@@ -146,6 +146,10 @@ def get_data_from_memory(token: str) -> Any:
             return None
             
         user_data = USER_STORE[email]
+
+        if "raw_json" in user_data:
+            logger.info(f"✅ Returning RAW JSON for {filename}")
+            return user_data["raw_json"]
         
         if "dataframe" not in user_data:
             logger.error("❌ No dataframe found in user session.")
