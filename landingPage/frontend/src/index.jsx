@@ -356,7 +356,7 @@ const HomePage = () => {
               e.target.style.transform = 'translateY(0)';
             }}
           >
-            Sign In with Google
+            Sign In
           </button>
         ) : (
           <div 
