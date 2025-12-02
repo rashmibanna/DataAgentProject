@@ -906,7 +906,9 @@ async def smart_mapping_with_files(
             host_base_name,
             target_base_name,
             email ,
-            access_token
+            access_token,
+            source_data=host_fields,    
+            target_data=target_fields
         )
 
         logger.info(f"✅ Mapping complete. Upload Response keys: {upload_resp.keys() if upload_resp else 'None'}")
