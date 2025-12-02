@@ -185,7 +185,7 @@
 
 .header {
     margin-top: 0;
-    margin-bottom: 30px;
+    margin-bottom: 300px;
     text-align: center;
 }
 
@@ -347,7 +347,7 @@
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     grid-template-columns: repeat(5, 1fr);
     gap: 18px;
-    max-width: 850px;
+    max-width: 1200px;
     margin: 0 auto;
 }
 
