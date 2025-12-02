@@ -157,6 +157,8 @@ const FileSelection = () => {
 const mappingResult = await startMapping(
     sourceUpload.local_path.replace(/\\/g, '/'),  // Normalize path
     targetUpload.local_path.replace(/\\/g, '/'),  // Normalize path
+    "source",   // ✅ ADD: Source file type
+    "target",   // ✅ ADD: Target file type
     email
 );
 
@@ -240,7 +242,7 @@ const uploadFile = async (file , fileType) => {
 };
 
 // Helper to call the smart mapping endpoint
-const startMapping = async (hostFilePath, targetFilePath, userEmail) => {
+const startMapping = async (hostFilePath, targetFilePath, hostFileType , targetFileType ,userEmail) => {
     const accessToken = token || localStorage.getItem('google_access_token');
     
     if (!accessToken) {
@@ -253,6 +255,8 @@ const startMapping = async (hostFilePath, targetFilePath, userEmail) => {
     // Use the 'local_path' result from the uploads as the file ID surrogate
     formData.append('host_file_id' , hostFilePath);
     formData.append('target_file_id' , targetFilePath);
+    formData.append('host_file_type', hostFileType);  
+    formData.append('target_file_type', targetFileType);
     formData.append('host_system', 'Host System');
     formData.append('target_system', 'Target System');
 
