@@ -50,6 +50,10 @@ const Dashboard = () => {
       const storedEmail = localStorage.getItem("user_email");
   
       // SCENARIO A: User just arrived from Login (Data is in URL)
+      if((!urlEmail && !storedEmail) || (!urlToken && !storedToken))
+      {
+        window.location.href = `${process.env.REACT_APP_BASE_FRONTEND_URL}?action=logout`;
+      }
       if (urlToken && urlEmail) {
         console.log("📥 New login detected from URL. Saving session...");
         
