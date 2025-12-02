@@ -23,6 +23,8 @@ from utilities import detect_and_cast_numeric
 from mapping_services import mapping_router
 from fastapi import Cookie, Depends, Response
 import logging
+from collections import Counter
+from rapidfuzz import fuzz, process
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -131,6 +133,107 @@ TOKENS_DIR.mkdir(exist_ok=True)
 # ----------------------------
 # Utilities
 # ----------------------------
+# ----------------------------
+# Duplicate & Error Detection Utilities
+# ----------------------------
+
+def detect_duplicate_key_columns(df: pd.DataFrame) -> list:
+    """Auto-detect columns likely to contain key business data (names, companies, etc.)"""
+    key_cols = []
+    for col in df.columns:
+        if df[col].dtype == object or pd.api.types.is_string_dtype(df[col]):
+            values = df[col].dropna().astype(str)
+            if values.empty:
+                continue
+            
+            col_lower = col.lower()
+            # Skip ID/serial/numeric-only columns
+            if any(k in col_lower for k in ["id", "serial", "no", "count"]):
+                continue
+            if values.str.isdigit().all():
+                continue
+            if values.str.match(r"^\d{2}[-/]\d{2}[-/]\d{4}$").all():
+                continue
+            
+            avg_len = values.str.len().mean()
+            if avg_len < 3:
+                continue
+            
+            unique_ratio = values.nunique() / len(values)
+            if unique_ratio < 0.02:
+                continue
+            
+            key_cols.append(col)
+    
+    print(f"[Duplicates] Auto-detected key columns: {key_cols}")
+    return key_cols
+
+
+def detect_duplicates(df: pd.DataFrame) -> pd.DataFrame:
+    """Detect both exact and fuzzy duplicates"""
+    duplicate_rows = []
+    
+    # 1. Exact duplicates (full-row)
+    exact_dupes = df[df.duplicated(keep=False)]
+    if not exact_dupes.empty:
+        exact_dupes = exact_dupes.copy()
+        exact_dupes["Duplicate_Type"] = "Exact"
+        duplicate_rows.append(exact_dupes)
+    
+    # 2. Fuzzy duplicates for detected key columns
+    key_columns = detect_duplicate_key_columns(df)
+    fuzzy_results = []
+    
+    for col in key_columns:
+        vals = df[col].dropna().astype(str).unique().tolist()
+        for val in vals:
+            matches = process.extract(val, vals, scorer=fuzz.token_sort_ratio, limit=None)
+            for match, score, _ in matches:
+                if match != val and score >= 85:
+                    fuzzy_results.append({
+                        "Column": col,
+                        "Value1": val,
+                        "Value2": match,
+                        "Similarity": score,
+                        "Duplicate_Type": "Fuzzy"
+                    })
+    
+    if fuzzy_results:
+        fuzzy_df = pd.DataFrame(fuzzy_results)
+        duplicate_rows.append(fuzzy_df)
+    
+    if duplicate_rows:
+        return pd.concat(duplicate_rows, ignore_index=True)
+    else:
+        return pd.DataFrame(columns=["Column", "Value1", "Value2", "Similarity", "Duplicate_Type"])
+
+
+def summarize_errors(bad_df: pd.DataFrame) -> pd.DataFrame:
+    """Create error frequency summary from bad data"""
+    reasons_col = None
+    for c in ["_validation_reason", "Reason", "error"]:  # Check multiple column names
+        if c in bad_df.columns:
+            reasons_col = c
+            break
+    
+    error_list = []
+    if reasons_col:
+        for item in bad_df[reasons_col].fillna("").astype(str):
+            if not item.strip():
+                continue
+            # Split by semicolon or just add as-is if it's a list
+            if isinstance(item, list):
+                error_list.extend([str(e).strip() for e in item if str(e).strip()])
+            else:
+                for err in [e.strip() for e in item.split(";") if e.strip()]:
+                    error_list.append(err)
+    
+    freq = Counter(error_list)
+    return pd.DataFrame([
+        {"Error": k, "Frequency": v} 
+        for k, v in freq.items()
+    ]).sort_values("Frequency", ascending=False)
+
 
 def save_credentials(email, tokens):
     """Save user credentials to file"""
@@ -1053,12 +1156,23 @@ async def api_run_validation(
         ]
     })
 
+    if not bad_df.empty:
+        error_freq_df = summarize_errors(bad_df)
+    else:
+        error_freq_df = pd.DataFrame(columns=["Error", "Frequency"])
+
+    # ✅ Duplicates Sheet (using helper function)
+    duplicates_df = detect_duplicates(df)
+
+
     mem_file = io.BytesIO()
     with pd.ExcelWriter(mem_file, engine="openpyxl") as writer:
         (good_df if not good_df.empty else pd.DataFrame()).to_excel(writer, "Good_Data", index=False)
         (bad_df if not bad_df.empty else pd.DataFrame()).to_excel(writer, "Bad_Data", index=False)
         (pd.DataFrame(rules) if rules else pd.DataFrame()).to_excel(writer, "Validation_Rules", index=False)
         summary.to_excel(writer, "Summary", index=False)
+        error_freq_df.to_excel(writer, "Error_Frequency", index=False) 
+        duplicates_df.to_excel(writer, "Duplicates", index=False)
 
     mem_file.seek(0)
 
