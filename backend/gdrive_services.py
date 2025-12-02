@@ -224,7 +224,9 @@ def upload_to_gdrive(
     host_system: str,
     target_system: str,
     email: str , # ✅ FIX: REQUIRED parameter,
-    access_token: Optional[str] = None
+    access_token: Optional[str] = None,
+    source_data: Optional[Any] = None,
+    target_data: Optional[Any] = None
 ) -> Dict[str, Any]:
     """
     Convert mapping JSON → Excel and upload to Drive.
@@ -275,6 +277,23 @@ def upload_to_gdrive(
                         pass
                 adjusted_width = min(max_length + 2, 50)
                 worksheet.column_dimensions[column_letter].width = adjusted_width
+
+            if source_data:
+                # Data List aithe direct ga, Dict aithe List lo petti DataFrame cheyyali
+                if isinstance(source_data, list):
+                    df_source = pd.DataFrame(source_data)
+                else:
+                    df_source = pd.DataFrame([source_data]) # Wrap dict in list
+                
+                df_source.to_excel(writer, index=False, sheet_name="Source Payload")
+            
+            if target_data:
+                if isinstance(target_data, list):
+                    df_target = pd.DataFrame(target_data)
+                else:
+                    df_target = pd.DataFrame([target_data])
+                
+                df_target.to_excel(writer, index=False, sheet_name="Target Payload")
         
         buf.seek(0)
         excel_bytes = buf.getvalue()
