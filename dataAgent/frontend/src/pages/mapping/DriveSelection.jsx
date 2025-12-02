@@ -131,6 +131,8 @@ const DriveSelection = () => {
                 console.log(email);
                 formData.append('host_file_id', sourceFile.id);
                 formData.append('target_file_id', targetFile.id);
+                formData.append('host_file_type','source');
+                formData.append('target_file_type' , 'target');
                 formData.append('host_system', 'Host System'); // You can make this dynamic
                 formData.append('target_system', 'Target System'); // You can make this dynamic
 
