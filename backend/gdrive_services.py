@@ -15,7 +15,6 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload, MediaIoBaseDownload
 from googleapiclient.errors import HttpError
 import logging
-from store import USER_STORE
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -260,55 +259,22 @@ def upload_to_gdrive(
             })
 
         df = pd.DataFrame(excel_rows)
-        
-        # Get source data from USER_STORE
-        source_data = None
-        if email in USER_STORE and "mapping_files" in USER_STORE[email]:
-            if "source" in USER_STORE[email]["mapping_files"]:
-                source_df = USER_STORE[email]["mapping_files"]["source"]["dataframe"]
-                source_data = source_df
-                logger.info(f"✅ Found source payload in memory")
-        
-        # Fallback: Try to reconstruct from host_file if available
-        if source_data is None:
-            logger.warning("⚠️ Source payload not found in memory, using placeholder")
-            source_data = pd.DataFrame([{"Note": "Source payload not available in session"}])
-        
-        # ==================== SHEET 3: Target Payload ====================
-        target_data = None
-        if email in USER_STORE and "mapping_files" in USER_STORE[email]:
-            if "target" in USER_STORE[email]["mapping_files"]:
-                target_df = USER_STORE[email]["mapping_files"]["target"]["dataframe"]
-                target_data = target_df
-                logger.info(f"✅ Found target payload in memory")
-        
-        if target_data is None:
-            logger.warning("⚠️ Target payload not found in memory, using placeholder")
-            target_data = pd.DataFrame([{"Note": "Target payload not available in session"}])
-
         buf = io.BytesIO()
         
         with pd.ExcelWriter(buf, engine='openpyxl') as writer:
-
             df.to_excel(writer, index=False, sheet_name="Field Mapping Specification")
-            # Sheet 2: Source Payload
-            source_data.to_excel(writer, index=False, sheet_name="Source Payload")
-            # Sheet 3: Target Payload
-            target_data.to_excel(writer, index=False, sheet_name="Target Payload")
-            
-            for sheet_name in writer.sheets:
-                worksheet = writer.sheets[sheet_name]
-                for column in worksheet.columns:
-                   max_length = 0
-                   column_letter = column[0].column_letter
-                   for cell in column:
-                       try:
-                           if len(str(cell.value)) > max_length:
-                              max_length = len(str(cell.value))
-                       except:
-                            pass
-                   adjusted_width = min(max_length + 2, 50)
-                   worksheet.column_dimensions[column_letter].width = adjusted_width
+            worksheet = writer.sheets["Field Mapping Specification"]
+            for column in worksheet.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 50)
+                worksheet.column_dimensions[column_letter].width = adjusted_width
         
         buf.seek(0)
         excel_bytes = buf.getvalue()
@@ -343,8 +309,7 @@ def upload_to_gdrive(
             "filename": filename,
             "size_bytes": len(excel_bytes),
             "mapping_count": len(mapping),
-            "uploaded_to": email,
-            "sheets": ["Field Mapping Specification", "Source Payload", "Target Payload"]  # ✅ NEW
+            "uploaded_to": email
         }
         
     except Exception as e:
