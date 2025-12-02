@@ -153,6 +153,9 @@ const DriveSelection = () => {
 
                 console.log('✅ Mapping successful:', result);
 
+                hideLoader();
+                alert(`Mapping successful! Result saved to Drive. URL: ${result.file_url}`);
+
                 // Navigate to results page with mapping data
                 navigate('/finallink', {
                     state: {
