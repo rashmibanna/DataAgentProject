@@ -505,24 +505,24 @@ def build_mapping_prompt(host_fields: Any, target_fields: Any, host_system: str,
     # # --- CONVERT TO STRING ---
     # src_str = json.dumps(host_final, indent=2, ensure_ascii=False)
     # tgt_str = json.dumps(target_final, indent=2, ensure_ascii=False)
-    def get_schema_sample(data):
-        """Extracts a single representative dictionary (first record) from a list"""
-        if isinstance(data, list):
-            if len(data) > 0:
-                # Return the first item (contains keys + sample values)
-                return data[0]
-            else:
-                return {}
-        return data  # If it's already a dict
+    # def get_schema_sample(data):
+    #     """Extracts a single representative dictionary (first record) from a list"""
+    #     if isinstance(data, list):
+    #         if len(data) > 0:
+    #             # Return the first item (contains keys + sample values)
+    #             return data[0]
+    #         else:
+    #             return {}
+    #     return data  # If it's already a dict
 
-    # --- PREPARE DATA ---
-    # We only send the SCHEMA (1st record) to the LLM, not the full file.
-    # This fixes the "Missing Sample Value" issue.
-    host_sample = get_schema_sample(host_fields)
-    target_sample = get_schema_sample(target_fields)
+    # # --- PREPARE DATA ---
+    # # We only send the SCHEMA (1st record) to the LLM, not the full file.
+    # # This fixes the "Missing Sample Value" issue.
+    # host_sample = get_schema_sample(host_fields)
+    # target_sample = get_schema_sample(target_fields)
 
-    src_str = json.dumps(host_sample, indent=2, ensure_ascii=False)
-    tgt_str = json.dumps(target_sample, indent=2, ensure_ascii=False)
+    src_str = json.dumps(host_fields, indent=2, ensure_ascii=False)
+    tgt_str = json.dumps(target_fields, indent=2, ensure_ascii=False)
 
     print("=====================================================================")
     print(src_str)
