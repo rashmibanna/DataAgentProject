@@ -684,7 +684,7 @@ def normalize_llm_mapping_response(parsed: Any, host_system: str, target_system:
         
         # Handle multiple possible field names (LLMs can be inconsistent)
         src_path = (item.get("Source Field (JSON Path)") or item.get("source") or item.get("Source") or "")
-        src_data_type = item.get("Source Data Type", "")
+        src_data_type = item.get("Source Data Type") or item.get("source_data_type") or ""
         src_sample = item.get("Sample Source Value", "")
         transformation = item.get("Transformation / Logic", item.get("transformation", "Direct Mapping"))
         tgt_field = (item.get("Target Field (API Name)") or item.get("Target Field") or item.get("target") or "N/A")
@@ -698,12 +698,12 @@ def normalize_llm_mapping_response(parsed: Any, host_system: str, target_system:
             "details": {
                 "source_system": host_system,
                 "target_system": target_system,
-                "transformation": transformation,
-                "notes": comments,
                 "source_data_type": src_data_type,
                 "source_sample": src_sample,
+                "transformation": transformation,
                 "target_data_type": tgt_data_type,
                 "target_sample": tgt_sample,
+                "notes": comments,
             }
         })
 
