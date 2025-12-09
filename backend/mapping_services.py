@@ -350,46 +350,75 @@ def tokenize_field(field: str) -> List[str]:
     return re.findall(r"[A-Za-z0-9]+", field.lower())
 
 
-def hybrid_smart_map(
-    fields_src: List[str],
-    fields_tgt: List[str],
-    sem_weight: float = SEMANTIC_WEIGHT,
-    str_weight: float = STRING_WEIGHT,
-    threshold: float = DEFAULT_SIMILARITY_THRESHOLD
-) -> List[Dict[str, Any]]:
-    """Hybrid mapping using semantic + string similarity + synonym boosting"""
-    if not fields_src:
-        logger.warning("No source fields provided")
-        return []
+# def hybrid_smart_map(
+#     fields_src: List[str],
+#     fields_tgt: List[str],
+#     sem_weight: float = SEMANTIC_WEIGHT,
+#     str_weight: float = STRING_WEIGHT,
+#     threshold: float = DEFAULT_SIMILARITY_THRESHOLD
+# ) -> List[Dict[str, Any]]:
+#     """Hybrid mapping using semantic + string similarity + synonym boosting"""
+#     if not fields_src:
+#         logger.warning("No source fields provided")
+#         return []
     
+#     if not fields_tgt:
+#         logger.warning("No target fields provided")
+#         return [{"source_field": s, "target_field": "N/A", "score": 0.0} for s in fields_src]
+
+#     sem_scores = compute_semantic_similarity_batch(fields_src, fields_tgt)
+#     tokenized_src = [tokenize_field(s) for s in fields_src]
+#     tokenized_tgt = [tokenize_field(t) for t in fields_tgt]
+    
+#     mappings = []
+#     for i, s in enumerate(fields_src):
+#         best_score, best_tgt = 0.0, None
+        
+#         for j, t in enumerate(fields_tgt):
+#             sem = sem_scores.get((i, j), 0)
+#             strsim = compute_string_similarity(s, t)
+#             syn_boost = synonym_boost_score(tokenized_src[i], tokenized_tgt[j])
+#             score = sem_weight * sem + str_weight * strsim + syn_boost
+            
+#             if score > best_score:
+#                 best_score, best_tgt = score, t
+        
+#         mappings.append({
+#             "source_field": s,
+#             "target_field": best_tgt if best_score >= threshold else "N/A",
+#             "score": round(best_score, 4)
+#         })
+    
+#     logger.info(f"Hybrid mapping completed: {len(mappings)} mappings generated")
+#     return mappings
+
+def hybrid_smart_map(fields_src, fields_tgt, sem_weight=0.65, str_weight=0.35, threshold=0.4):
+    """
+    fields_src and fields_tgt are lists of string paths (or strings).
+    Returns list of {"source_field", "target_field", "score"}.
+    """
+    if not fields_src:
+        return []
     if not fields_tgt:
-        logger.warning("No target fields provided")
         return [{"source_field": s, "target_field": "N/A", "score": 0.0} for s in fields_src]
 
     sem_scores = compute_semantic_similarity_batch(fields_src, fields_tgt)
-    tokenized_src = [tokenize_field(s) for s in fields_src]
-    tokenized_tgt = [tokenize_field(t) for t in fields_tgt]
-    
+    tokenized_src = [re.findall(r"[A-Za-z0-9]+", s.lower()) for s in fields_src]
+    tokenized_tgt = [re.findall(r"[A-Za-z0-9]+", t.lower()) for t in fields_tgt]
     mappings = []
     for i, s in enumerate(fields_src):
         best_score, best_tgt = 0.0, None
-        
         for j, t in enumerate(fields_tgt):
             sem = sem_scores.get((i, j), 0)
             strsim = compute_string_similarity(s, t)
             syn_boost = synonym_boost_score(tokenized_src[i], tokenized_tgt[j])
             score = sem_weight * sem + str_weight * strsim + syn_boost
-            
             if score > best_score:
                 best_score, best_tgt = score, t
-        
-        mappings.append({
-            "source_field": s,
-            "target_field": best_tgt if best_score >= threshold else "N/A",
-            "score": round(best_score, 4)
-        })
-    
-    logger.info(f"Hybrid mapping completed: {len(mappings)} mappings generated")
+        if best_score >= threshold:
+            mappings.append({"source_field": s, "target_field": best_tgt, "score": round(best_score, 4)})
+        else:
+            mappings.append({"source_field": s, "target_field": "N/A", "score": round(best_score, 4)})
     return mappings
 
 
@@ -780,7 +809,23 @@ def llm_field_mapping(
 
     except Exception as e:
         logger.warning(f"⚠️ LLM failed ({e.__class__.__name__}: {e}), falling back to hybrid")
-        return _fallback_to_hybrid(host_fields, target_fields)
+        print("⚠️ Gemini failed or timed out, falling back to hybrid:", e)
+        # Use hybrid fallback. Need host/target lists of leaf paths
+        if isinstance(host_fields, dict):
+            host_paths = extract_all_leaf_paths_from_json(host_fields)
+        elif isinstance(host_fields, list):
+            host_paths = []
+            for h in host_fields:
+                if isinstance(h, dict):
+                    host_paths.extend(extract_all_leaf_paths_from_json(h))
+        else:
+            host_paths = [str(host_fields)]
+        if isinstance(target_fields, dict):
+            target_paths = extract_all_leaf_paths_from_json(target_fields)
+        else:
+            target_paths = [str(target_fields)]
+        hybrid = hybrid_smart_map(host_paths, target_paths)
+        return [{"source": m["source_field"], "target": m["target_field"]} for m in hybrid]
 
 
 def _fallback_to_hybrid(host_fields: Any, target_fields: Any) -> List[Dict[str, Any]]:
