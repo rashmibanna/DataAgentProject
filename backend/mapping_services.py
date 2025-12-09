@@ -727,6 +727,7 @@ def llm_field_mapping(
     try:
         text = run_gemini_with_timeout(prompt, timeout_seconds=llm_timeout)
         
+        logger.info(f"🔍 RAW GEMINI RESPONSE (first 500 chars): {text[:500]}")
         if not text:
             raise ValueError("Empty response from Gemini")
         
@@ -742,6 +743,9 @@ def llm_field_mapping(
                  raise ValueError(f"No JSON found in Gemini response")
 
         parsed = json.loads(match.group(0))
+        if parsed:
+            logger.info(f"🔍 FIRST PARSED ITEM KEYS: {list(parsed[0].keys())}")
+            logger.info(f"🔍 FIRST ITEM: {json.dumps(parsed[0], indent=2)}")
         normalized = normalize_llm_mapping_response(parsed, host_system, target_system)
         
 
@@ -749,7 +753,6 @@ def llm_field_mapping(
         mapped_sources = {m["source"] for m in normalized}
         
         # Find missing fields
-        missing_sources = [s for s in source_fields_from_data if s not in mapped_sources]
         
         # # Add missing mappings
         # for missing in missing_sources:
