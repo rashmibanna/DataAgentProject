@@ -2,7 +2,7 @@ name: Keep All Render Services Awake
 
 on:
   schedule:
-    # Every 14 minutes
+    # Every 10 minutes
     - cron: '*/10 * * * *'
   workflow_dispatch: # Manual run option
 
