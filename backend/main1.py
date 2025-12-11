@@ -169,38 +169,110 @@ def detect_duplicate_key_columns(df: pd.DataFrame) -> list:
     return key_cols
 
 
+# def detect_duplicates(df: pd.DataFrame) -> pd.DataFrame:
+#     """Detect both exact and fuzzy duplicates"""
+#     duplicate_rows = []
+    
+#     # 1. Exact duplicates (full-row)
+#     exact_dupes = df[df.duplicated(keep=False)]
+#     if not exact_dupes.empty:
+#         exact_dupes = exact_dupes.copy()
+#         exact_dupes["Duplicate_Type"] = "Exact"
+#         duplicate_rows.append(exact_dupes)
+    
+#     # 2. Fuzzy duplicates for detected key columns
+#     key_columns = detect_duplicate_key_columns(df)
+#     fuzzy_results = []
+    
+#     for col in key_columns:
+#         vals = df[col].dropna().astype(str).unique().tolist()
+#         for val in vals:
+#             matches = process.extract(val, vals, scorer=fuzz.token_sort_ratio, limit=None)
+#             for match, score, _ in matches:
+#                 if match != val and score >= 85:
+#                     fuzzy_results.append({
+#                         "Column": col,
+#                         "Value1": val,
+#                         "Value2": match,
+#                         "Similarity": score,
+#                         "Duplicate_Type": "Fuzzy"
+#                     })
+    
+#     if fuzzy_results:
+#         fuzzy_df = pd.DataFrame(fuzzy_results)
+#         duplicate_rows.append(fuzzy_df)
+    
+#     if duplicate_rows:
+#         return pd.concat(duplicate_rows, ignore_index=True)
+#     else:
+#         return pd.DataFrame(columns=["Column", "Value1", "Value2", "Similarity", "Duplicate_Type"])
+
 def detect_duplicates(df: pd.DataFrame) -> pd.DataFrame:
-    """Detect both exact and fuzzy duplicates"""
+    """
+    Optimized Duplicate Detection.
+    1. Exact Matches: Checks full dataframe (standard).
+    2. Fuzzy Matches: Uses SET to get unique values -> Sorts them -> Checks neighbors.
+       This is extremely fast and prevents Memory Crashes on Render.
+    """
     duplicate_rows = []
     
-    # 1. Exact duplicates (full-row)
+    # --- PART 1: EXACT DUPLICATES (Original Rows) ---
+    # This keeps the full row data for exact duplicates
     exact_dupes = df[df.duplicated(keep=False)]
     if not exact_dupes.empty:
         exact_dupes = exact_dupes.copy()
         exact_dupes["Duplicate_Type"] = "Exact"
         duplicate_rows.append(exact_dupes)
     
-    # 2. Fuzzy duplicates for detected key columns
+    # --- PART 2: FUZZY DUPLICATES (Optimized with SET) ---
     key_columns = detect_duplicate_key_columns(df)
-    fuzzy_results = []
     
-    for col in key_columns:
-        vals = df[col].dropna().astype(str).unique().tolist()
-        for val in vals:
-            matches = process.extract(val, vals, scorer=fuzz.token_sort_ratio, limit=None)
-            for match, score, _ in matches:
-                if match != val and score >= 85:
-                    fuzzy_results.append({
-                        "Column": col,
-                        "Value1": val,
-                        "Value2": match,
-                        "Similarity": score,
-                        "Duplicate_Type": "Fuzzy"
-                    })
-    
-    if fuzzy_results:
-        fuzzy_df = pd.DataFrame(fuzzy_results)
-        duplicate_rows.append(fuzzy_df)
+    if key_columns:
+        print(f"🔍 Fuzzy Check on columns: {key_columns}")
+        
+        for col in key_columns:
+            # Step A: Get all values as strings
+            vals = df[col].dropna().astype(str).tolist()
+            if not vals:
+                continue
+
+            # Step B: USE SET (Optimization)
+            # We only need to find WHICH words are similar, not how many times they appear.
+            # This reduces 10,000 checks to just ~500 checks.
+            unique_vals = list(set(vals))
+            unique_vals.sort() # Sorting brings similar words closer
+            
+            total_vals = len(unique_vals)
+            fuzzy_results = []
+            
+            # Step C: Sliding Window (Check only neighbors)
+            # Compare Word[i] with next 20 words only
+            WINDOW_SIZE = 20
+            
+            for i in range(total_vals):
+                current_val = unique_vals[i]
+                
+                start_check = i + 1
+                end_check = min(i + WINDOW_SIZE, total_vals)
+                
+                for j in range(start_check, end_check):
+                    next_val = unique_vals[j]
+                    
+                    # Fuzzy Ratio check
+                    score = fuzz.ratio(current_val.lower(), next_val.lower())
+                    
+                    if score >= 85:
+                        fuzzy_results.append({
+                            "Column": col,
+                            "Value1": current_val,
+                            "Value2": next_val,
+                            "Similarity": score,
+                            "Duplicate_Type": "Fuzzy"
+                        })
+
+            if fuzzy_results:
+                fuzzy_df = pd.DataFrame(fuzzy_results)
+                duplicate_rows.append(fuzzy_df)
     
     if duplicate_rows:
         return pd.concat(duplicate_rows, ignore_index=True)
