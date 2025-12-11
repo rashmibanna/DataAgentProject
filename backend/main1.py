@@ -1343,22 +1343,69 @@ async def api_run_validation(
             resumable=True
         )
         
+    #     created = service.files().create(
+    #         body={
+    #             "name": f"validation_result_{filename}",
+    #             "mimeType": "application/vnd.google-apps.spreadsheet"
+    #         }, 
+    #         media_body=media, 
+    #         fields="id,webViewLink"
+    #     ).execute()
+        
+    #     file_id = created.get("id")
+    #     web_link = created.get("webViewLink")
+        
+    #     service.permissions().create(fileId=file_id, body={"type": "anyone", "role": "reader"}).execute()
+
+    # except Exception as e:
+    #     print(f"❌ Upload Error: {e}")
+    #     web_link = None
+    #     file_id = None
+    
+    # # 8. Clean up disk files
+    # import shutil
+    # shutil.rmtree(temp_dir)
+    # gc.collect()
+
+    # return {
+    #     "workbook": {
+    #         "id": file_id, 
+    #         "webViewLink": web_link,
+    #         "downloadLink": f"https://drive.google.com/uc?export=download&id={file_id}" if file_id else None
+    #     },
+    #     "good_count": total_good,
+    #     "bad_count": total_bad,
+    # }
+        metadata = {
+               "name": f"validation_result_{filename}",  # CHANGED: use filename directly
+            "mimeType": "application/vnd.google-apps.spreadsheet"
+        }
+        
         created = service.files().create(
-            body={
-                "name": f"validation_result_{filename}",
-                "mimeType": "application/vnd.google-apps.spreadsheet"
-            }, 
+            body=metadata, 
             media_body=media, 
-            fields="id,webViewLink"
+            fields="id,webViewLink,webContentLink"
         ).execute()
         
         file_id = created.get("id")
         web_link = created.get("webViewLink")
         
-        service.permissions().create(fileId=file_id, body={"type": "anyone", "role": "reader"}).execute()
-
+        try:
+            service.permissions().create(
+                fileId=file_id,
+                body={
+                    "type": "anyone",
+                    "role": "reader"
+                }
+            ).execute()
+            print(f"✅ File permissions set: {file_id}")
+        except Exception as perm_error:
+            print(f"⚠️ Permission Error: {perm_error}")
+        
+        print(f"✅ File uploaded to Drive: {web_link}")
+        
     except Exception as e:
-        print(f"❌ Upload Error: {e}")
+        print(f"[Drive Upload Error] {e}")
         web_link = None
         file_id = None
     
@@ -1366,7 +1413,7 @@ async def api_run_validation(
     import shutil
     shutil.rmtree(temp_dir)
     gc.collect()
-
+    
     return {
         "workbook": {
             "id": file_id, 
