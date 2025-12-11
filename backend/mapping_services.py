@@ -780,27 +780,7 @@ def llm_field_mapping(
 
         source_fields_from_data = extract_all_leaf_paths_from_json(host_fields)
         mapped_sources = {m["source"] for m in normalized}
-        
-        # Find missing fields
-        
-        # # Add missing mappings
-        # for missing in missing_sources:
-        #     normalized.append({
-        #         "source": missing,
-        #         "target": "N/A",
-        #         "details": {
-        #             "source_system": host_system,
-        #             "target_system": target_system,
-        #             "transformation": "No mapping found",
-        #             "notes": "Field not mapped by LLM",
-        #             "source_data_type": "",
-        #             "source_sample": "",
-        #             "target_data_type": "",
-        #             "target_sample": "",
-        #         }
-        #     })
-        # ✅ END OF ADDED BLOCK
-
+       
         if not normalized:
             raise ValueError("Gemini returned empty mapping")
 
