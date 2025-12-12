@@ -906,73 +906,163 @@ async def api_mapping_upload_local(
         "row_count": len(df)
     }
 
+# @app.post("/api/upload_local")
+# async def api_upload_local(email: str = Form(...), file: UploadFile = File(...)):
+#     if email not in USER_STORE:
+#         USER_STORE.setdefault(email, {})
+#     contents = await file.read()
+    
+#     # <--- CHANGED: Get lowercase filename once for easier checking
+#     filename_lower = file.filename.lower() 
+
+#     try:
+#         # Check for CSV
+#         if filename_lower.endswith(".csv"):
+#             # try to detect delimiter intelligently (fall back to comma)
+#             # Many of your CSVs look like tab-separated; try '\t' first then ','
+#             try:
+#                 df = pd.read_csv(io.BytesIO(contents), sep=None, engine="python", dtype=str)
+#             except Exception:
+#                 try:
+#                     df = pd.read_csv(io.BytesIO(contents), dtype=str)
+#                 except Exception:
+#                     # fallback: read as excel (sometimes CSVs are misnamed XLS)
+#                     df = pd.read_excel(io.BytesIO(contents))
+
+#         # <--- CHANGED: Add explicit check for JSON files
+#         elif filename_lower.endswith(".json"):
+#              import json
+#              json_data = json.load(io.BytesIO(contents))
+             
+#              # 2. Check structure
+#              if isinstance(json_data, dict):
+#                  # If it's a single dictionary (scalar values), wrap it in a list
+#                  df = pd.DataFrame([json_data])
+#              else:
+#                  # If it's already a list, load it directly
+#                  df = pd.DataFrame(json_data)
+
+#         # <--- CHANGED: Add explicit check for Excel files rather than a blind 'else'
+#         elif filename_lower.endswith((".xls", ".xlsx", ".xlsm")):
+#             df = pd.read_excel(io.BytesIO(contents))
+
+#         # <--- CHANGED: Final else if the format is totally unknown
+#         else:
+#              raise Exception(f"Unsupported file format: {pathlib.Path(file.filename).suffix}")
+
+#     except Exception as e:
+#         LOG.exception("Failed to parse uploaded file: %s", e)
+#         # This will return the 400 error you saw in your console logs
+#         raise HTTPException(status_code=400, detail=f"Failed to read file: {e}")
+
+#     # cast numeric columns
+#     df = detect_and_cast_numeric(df)
+
+#     USER_STORE[email]["dataframe"] = df
+
+#     USER_STORE[email]["filename"] = pathlib.Path(file.filename).name
+
+#     print("============================================================")
+#     print(df)
+#     print("=================================================================")
+#     print(pathlib.Path(file.filename).name)
+
+#     # create a session token for templates
+#     session_token = make_session_token(email, USER_STORE[email]["filename"])
+#     USER_STORE[email]["last_session_token"] = session_token
+    
+#     preview = df.head(5).replace({float("inf"): None, float("-inf"): None}).fillna("").to_dict(orient="records")
+#     return {"name": USER_STORE[email]["filename"], "preview": preview, "local_path": session_token}
+
+import shutil
+import tempfile
+
 @app.post("/api/upload_local")
 async def api_upload_local(email: str = Form(...), file: UploadFile = File(...)):
+    """
+    ✅ Optimized Upload: Saves file directly to Disk (Temp folder).
+    Does NOT load the whole file into RAM. Safe for large files.
+    """
     if email not in USER_STORE:
         USER_STORE.setdefault(email, {})
-    contents = await file.read()
     
-    # <--- CHANGED: Get lowercase filename once for easier checking
-    filename_lower = file.filename.lower() 
+    filename = file.filename
+    filename_lower = filename.lower()
+    
+    # 1. Create a Temp File on Disk
+    # 'delete=False' means the file stays until we manually remove it (in cleanup)
+    suffix = pathlib.Path(filename).suffix
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+    temp_path = temp_file.name # e.g., /tmp/tmp8475.csv
 
     try:
-        # Check for CSV
-        if filename_lower.endswith(".csv"):
-            # try to detect delimiter intelligently (fall back to comma)
-            # Many of your CSVs look like tab-separated; try '\t' first then ','
-            try:
-                df = pd.read_csv(io.BytesIO(contents), sep=None, engine="python", dtype=str)
-            except Exception:
+        # 2. Stream content from Upload to Disk (RAM Safe)
+        with temp_file as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        print(f"✅ File saved to disk at: {temp_path}")
+        
+        # 3. Store ONLY the PATH in memory (Not the heavy DataFrame)
+        USER_STORE[email]["file_path"] = temp_path
+        USER_STORE[email]["filename"] = filename
+        
+        # Clear any old dataframe from RAM to free space
+        if "dataframe" in USER_STORE[email]:
+            del USER_STORE[email]["dataframe"]
+
+        # 4. Generate Preview (Read only first 5 rows)
+        # We read just a tiny bit to show the user, preserving RAM.
+        try:
+            if filename_lower.endswith(".csv"):
+                # Try reading with default engine
                 try:
-                    df = pd.read_csv(io.BytesIO(contents), dtype=str)
-                except Exception:
-                    # fallback: read as excel (sometimes CSVs are misnamed XLS)
-                    df = pd.read_excel(io.BytesIO(contents))
-
-        # <--- CHANGED: Add explicit check for JSON files
-        elif filename_lower.endswith(".json"):
-             import json
-             json_data = json.load(io.BytesIO(contents))
-             
-             # 2. Check structure
-             if isinstance(json_data, dict):
-                 # If it's a single dictionary (scalar values), wrap it in a list
-                 df = pd.DataFrame([json_data])
-             else:
-                 # If it's already a list, load it directly
-                 df = pd.DataFrame(json_data)
-
-        # <--- CHANGED: Add explicit check for Excel files rather than a blind 'else'
-        elif filename_lower.endswith((".xls", ".xlsx", ".xlsm")):
-            df = pd.read_excel(io.BytesIO(contents))
-
-        # <--- CHANGED: Final else if the format is totally unknown
-        else:
-             raise Exception(f"Unsupported file format: {pathlib.Path(file.filename).suffix}")
+                    df_preview = pd.read_csv(temp_path, nrows=5, dtype=str)
+                except:
+                    # Fallback for encoding errors
+                    df_preview = pd.read_csv(temp_path, nrows=5, sep=None, engine='python', dtype=str)
+                    
+            elif filename_lower.endswith(".json"):
+                # JSON is tricky to read partially, so we read full for preview (usually json is smaller)
+                # Or we can just read line by line if it's new-line delimited
+                import json
+                with open(temp_path, 'r') as f:
+                    try:
+                        data = json.load(f)
+                        if isinstance(data, list):
+                            df_preview = pd.DataFrame(data[:5])
+                        else:
+                            df_preview = pd.DataFrame([data])
+                    except:
+                        df_preview = pd.DataFrame() # Fail gracefully
+                        
+            elif filename_lower.endswith((".xls", ".xlsx", ".xlsm")):
+                df_preview = pd.read_excel(temp_path, nrows=5, dtype=str)
+            else:
+                raise Exception("Unsupported file format")
+                
+        except Exception as read_err:
+            print(f"⚠️ Preview generation failed: {read_err}")
+            df_preview = pd.DataFrame(columns=["Error"])
 
     except Exception as e:
-        LOG.exception("Failed to parse uploaded file: %s", e)
-        # This will return the 400 error you saw in your console logs
-        raise HTTPException(status_code=400, detail=f"Failed to read file: {e}")
+        logger.exception("Failed to save file: %s", e)
+        # Cleanup if failed
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+        raise HTTPException(status_code=400, detail=f"Failed to save file: {e}")
 
-    # cast numeric columns
-    df = detect_and_cast_numeric(df)
-
-    USER_STORE[email]["dataframe"] = df
-
-    USER_STORE[email]["filename"] = pathlib.Path(file.filename).name
-
-    print("============================================================")
-    print(df)
-    print("=================================================================")
-    print(pathlib.Path(file.filename).name)
-
-    # create a session token for templates
-    session_token = make_session_token(email, USER_STORE[email]["filename"])
+    # Create session token
+    session_token = make_session_token(email, filename)
     USER_STORE[email]["last_session_token"] = session_token
     
-    preview = df.head(5).replace({float("inf"): None, float("-inf"): None}).fillna("").to_dict(orient="records")
-    return {"name": USER_STORE[email]["filename"], "preview": preview, "local_path": session_token}
+    # Prepare preview for frontend
+    preview = df_preview.replace({float("inf"): None, float("-inf"): None}).fillna("").to_dict(orient="records")
+    
+    return {
+        "name": filename, 
+        "preview": preview, 
+        "local_path": session_token
+    }
 
 
 # ----------------------------
@@ -988,15 +1078,24 @@ async def api_get_validation_rules(
 ):
     """Generate validation rules using Gemini"""
     # Get DataFrame from memory using email
-    if email not in USER_STORE or "dataframe" not in USER_STORE[email]:
+    if email not in USER_STORE or "file_path" not in USER_STORE[email]:
         raise HTTPException(status_code=404, detail="No dataset loaded. Please upload a file first.")
 
-    df = USER_STORE[email]["dataframe"]
+    # df = USER_STORE[email]["dataframe"]
+
+    file_path = USER_STORE[email]["file_path"]
+    try:
+        if file_path.endswith('.csv'):
+            df = pd.read_csv(file_path, dtype=str)
+        else:
+            df = pd.read_excel(file_path)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error reading file from disk: {e}")
 
     df = detect_and_cast_numeric(df)
     headers = list(df.columns)
     sample_size = min(len(df), 10)
-    sample_rows = df.sample(n=sample_size).to_dict(orient="records")
+    sample_rows = df.sample(n=sample_size).replace({float("nan"): None}).to_dict(orient="records")
 
     # print("SAMPLE ROWS" , sample_rows)
 
@@ -1029,10 +1128,19 @@ async def api_regenerate_rules(
 ):
     """Refine validation rules based on user edits"""
     # Get DataFrame from memory
-    if email not in USER_STORE or "dataframe" not in USER_STORE[email]:
+    if email not in USER_STORE or "file_path" not in USER_STORE[email]:
          raise HTTPException(status_code=404, detail="No dataset loaded in session.")
 
-    df = USER_STORE[email]["dataframe"]
+    # df = USER_STORE[email]["dataframe"]
+
+    file_path = USER_STORE[email]["file_path"]
+    try:
+        if file_path.endswith('.csv'):
+            df = pd.read_csv(file_path, dtype=str)
+        else:
+            df = pd.read_excel(file_path)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Could not read source file")
 
     try:
         user_edits = json.loads(edits_json)
@@ -1057,7 +1165,7 @@ async def api_regenerate_rules(
             active_headers = original_headers
     
     df_filtered = df[active_headers]
-    sample_rows = df_filtered.head(5).to_dict(orient="records")
+    sample_rows = df_filtered.head(5).replace({float("nan"): None}).to_dict(orient="records")
 
     print("[RegenerateRules] Sending user edits to Gemini...")
     new_rules = call_gemini_generate_rules(active_headers, sample_rows, user_guidance=user_edits)
@@ -1212,10 +1320,22 @@ async def api_run_validation(
     print(f"[RunValidation] Starting Chunked Processing for {filename}")
 
     # 1. Get DataFrame (Reference only, don't copy yet)
-    if email not in USER_STORE or "dataframe" not in USER_STORE[email]:
+    if email not in USER_STORE or "file_path" not in USER_STORE[email]:
         raise HTTPException(status_code=400, detail="No dataset in memory.")
     
-    full_df = USER_STORE[email]["dataframe"]
+    # full_df = USER_STORE[email]["dataframe"]
+    # total_rows = len(full_df)
+
+    file_path = USER_STORE[email]["file_path"]
+    try:
+        if file_path.endswith('.csv'):
+            full_df = pd.read_csv(file_path, dtype=str)
+        else:
+            full_df = pd.read_excel(file_path)
+        full_df = detect_and_cast_numeric(full_df)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error reading file from disk: {e}")
+    
     total_rows = len(full_df)
 
     try:
