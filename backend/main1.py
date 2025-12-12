@@ -1394,6 +1394,10 @@ async def api_run_validation(
     
     # Run exact duplicate check on full dataframe (It's memory efficient usually)
     duplicates_df = detect_duplicates(full_df)
+
+    print("🧹 Cleaning up Main Dataframe from RAM to prevent crash...")
+    del full_df
+    gc.collect()
     
     # 5. Generate Summary
     summary = pd.DataFrame({
