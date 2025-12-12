@@ -1337,6 +1337,7 @@ async def api_run_validation(
         raise HTTPException(status_code=400, detail=f"Error reading file from disk: {e}")
     
     total_rows = len(full_df)
+    column_count = len(full_df.columns)
 
     try:
         rules = json.loads(rules_json)
@@ -1406,7 +1407,7 @@ async def api_run_validation(
             total_rows, total_good, total_bad,
             f"{(total_good / total_rows * 100):.2f}%" if total_rows else "0.00%",
             f"{(total_bad / total_rows * 100):.2f}%" if total_rows else "0.00%",
-            len(full_df.columns), len(rules),
+            column_count,len(rules),
             datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         ]
     })
