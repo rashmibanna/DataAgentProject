@@ -1552,6 +1552,19 @@ async def api_run_validation(
 # ----------------------------
 # Health Check
 # ----------------------------
+
+@app.get("/health")
+def health_check():
+    """
+    Lightweight route for UptimeRobot to keep server awake.
+    Returns 200 OK status.
+    """
+    return {
+        "status": "awake", 
+        "timestamp": datetime.now().isoformat(),
+        "message": "I am ready to process data! 🤖"
+    }
+
 @app.get("/")
 def root():
     return {"message": "AI Data Validation Tool is running! ✅", "frontend": FRONTEND_URL}
