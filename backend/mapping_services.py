@@ -45,8 +45,8 @@ STRING_WEIGHT = 0.35
 MAX_EXECUTOR_WORKERS = 4
 
 # Gemini Setup
-GEMINI_KEY = os.getenv("GEMINI_API_KEY", "").strip()
-GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+GEMINI_KEY = os.getenv("GEMINI_MAPPING_API_KEY", "").strip()
+GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-3.0-flash")
 
 if GEMINI_KEY:
     try:
