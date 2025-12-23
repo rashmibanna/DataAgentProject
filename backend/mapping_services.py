@@ -46,7 +46,7 @@ MAX_EXECUTOR_WORKERS = 4
 
 # Gemini Setup
 GEMINI_KEY = os.getenv("GEMINI_MAPPING_API_KEY", "").strip()
-GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 if GEMINI_KEY:
     try:
