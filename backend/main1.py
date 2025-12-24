@@ -1538,6 +1538,7 @@ async def api_run_validation(
     import shutil
     shutil.rmtree(temp_dir)
     gc.collect()
+    print("file deleted successfully from the disk");
     
     return {
         "workbook": {
