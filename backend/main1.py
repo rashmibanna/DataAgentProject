@@ -741,73 +741,57 @@ def get_drive_file(email: str = Query(...), file_id: str = Query(...)):
 
         buffer.seek(0)
 
-        # Parse into DataFrame
+        # 4. ✅ CRITICAL FIX: Save to Disk so 'file_path' is updated for Validation
+        import tempfile
+        import shutil
+        
+        suffix = pathlib.Path(filename).suffix
+        if not suffix: suffix = ".csv" # fallback
+        
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+        temp_path = temp_file.name
+
+        with open(temp_path, "wb") as f:
+            f.write(buffer.getbuffer())
+
+        # 5. ✅ Update USER_STORE with NEW file details
+        if email not in USER_STORE:
+            USER_STORE[email] = {}
+            
+        USER_STORE[email]["file_path"] = temp_path  # Now Validation points to THIS file
+        USER_STORE[email]["filename"] = filename
+        
+        # Clear old DF from memory to avoid confusion
+        if "dataframe" in USER_STORE[email]:
+            del USER_STORE[email]["dataframe"]
+
+        # 6. Generate Preview and Session Token
         try:
-            if filename.lower().endswith('.csv') or mime_type == 'text/csv':
-                df = pd.read_csv(buffer, dtype=str)
+            if filename.lower().endswith('.csv'):
+                df_preview = pd.read_csv(temp_path, nrows=5, dtype=str)
             else:
-                df = pd.read_excel(buffer)
+                df_preview = pd.read_excel(temp_path, nrows=5)
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Failed to parse file: {e}")
 
-        # Cast numeric columns
-        df = detect_and_cast_numeric(df)
-
-        # Store in USER_STORE (in-memory)
-        USER_STORE.setdefault(email, {})
-        USER_STORE[email]["dataframe"] = df
-        USER_STORE[email]["filename"] = filename
-
-        # Create session token
         session_token = make_session_token(email, filename)
         USER_STORE[email]["last_session_token"] = session_token
+        
+        preview = df_preview.replace({float("inf"): None, float("-inf"): None}).fillna("").to_dict(orient="records")
 
-        # Get file size from buffer
-        file_size = buffer.getbuffer().nbytes
-
-        print(f"✅ File loaded to memory: {filename} ({file_size / 1024:.2f} KB)")
-
-        # Return preview
-        preview = df.head(5).replace({float("inf"): None, float("-inf"): None}).fillna("").to_dict(orient="records")
+        print(f"✅ Drive file saved and path updated: {filename} -> {temp_path}")
 
         return {
             "name": filename,
-            "local_path": session_token,  # Session token instead of file path
+            "local_path": session_token,
             "preview": preview,
-            "columns": list(df.columns),
-            "size_kb": round(file_size / 1024, 2),
-            "mime_type": mime_type
+            "columns": list(df_preview.columns),
+            "size_kb": round(buffer.getbuffer().nbytes / 1024, 2)
         }
 
-    except HttpError as e:
-        error_msg = str(e)
-        print(f"❌ [Drive API Error] {error_msg}")
-        
-        if "404" in error_msg or "notFound" in error_msg:
-            return JSONResponse({
-                "error": "File not found",
-                "details": "The file doesn't exist or you don't have permission to access it",
-                "suggestion": "Make sure the file is shared with your Google account"
-            }, status_code=404)
-            
-        elif "403" in error_msg or "forbidden" in error_msg:
-            return JSONResponse({
-                "error": "Access denied",
-                "details": "You don't have permission to access this file",
-                "suggestion": "Ask the file owner to share it with you"
-            }, status_code=403)
-            
-        return JSONResponse({
-            "error": "Failed to download file",
-            "details": error_msg
-        }, status_code=500)
-        
     except Exception as e:
-        print(f"❌ [Unexpected Error] {e}")
-        return JSONResponse({
-            "error": "Unexpected error",
-            "details": str(e)
-        }, status_code=500)
+        print(f"❌ [Drive Error] {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 
 # ----------------------------
