@@ -1517,15 +1517,9 @@ async def api_run_validation(
         print(f"[Drive Upload Error] {e}")
         web_link = None
         file_id = None
-    
-   # Upload done
+    # Upload done
     del media
     gc.collect()
-    
-    # Remove artificial sleep
-    # time.sleep(100)  ❌ DELETE THIS
-    
-    # Safe cleanup
     import shutil
     import time
     
@@ -1542,6 +1536,7 @@ async def api_run_validation(
     gc.collect()
     
     print("file deleted successfully from the disk")
+    
     
     return {
         "workbook": {
